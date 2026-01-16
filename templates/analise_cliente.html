@@ -21,7 +21,7 @@
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 20px 40px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
@@ -37,33 +37,35 @@
         .logo-section img {
             height: 50px;
             width: auto;
-            border-radius: 5px;
+            object-fit: contain;
         }
 
         .logo-section h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 28px;
+            font-weight: 700;
         }
 
         .user-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
         }
 
         .logout-btn {
             background: rgba(255, 255, 255, 0.2);
             color: white;
-            border: 1px solid white;
-            padding: 8px 16px;
+            border: 2px solid white;
+            padding: 10px 24px;
             border-radius: 5px;
             cursor: pointer;
             text-decoration: none;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: 600;
         }
 
         .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: white;
+            color: #667eea;
         }
 
         .container {
@@ -77,15 +79,16 @@
             margin-bottom: 20px;
             background: #667eea;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 5px;
             text-decoration: none;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
             font-weight: 600;
         }
 
         .back-btn:hover {
             background: #764ba2;
+            transform: translateY(-2px);
         }
 
         .cliente-header {
@@ -101,6 +104,7 @@
             color: #667eea;
             margin-bottom: 20px;
             font-size: 28px;
+            font-weight: 700;
         }
 
         .cliente-info {
@@ -146,6 +150,12 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
         }
 
         .card.success {
@@ -192,6 +202,7 @@
             color: #667eea;
             margin-bottom: 25px;
             font-size: 20px;
+            font-weight: 700;
             border-bottom: 3px solid #667eea;
             padding-bottom: 15px;
         }
@@ -309,6 +320,7 @@
             color: #667eea;
             margin-bottom: 15px;
             font-size: 14px;
+            font-weight: 700;
         }
 
         .recommendations ul {
@@ -338,9 +350,20 @@
             color: #999;
         }
 
-        .empty-state h4 {
+        .empty-state h2 {
             color: #666;
             margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .valor-2025 {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .valor-2026 {
+            color: #1976d2;
+            font-weight: 600;
         }
 
         @media (max-width: 768px) {
@@ -369,11 +392,11 @@
 <body>
     <header>
         <div class="logo-section">
-            <img src="/static/images/logo.png" alt="Logo">
+            <img src="/static/images/logo.png" alt="Logo BI Varejão">
             <h1>BI Varejão</h1>
         </div>
         <div class="user-section">
-            <span>Bem-vindo, <strong>{{ session.get('user', 'Usuário') }}</strong></span>
+            <span style="font-size: 14px;">Bem-vindo, <strong>{{ session.get('user', 'Usuário') }}</strong></span>
             <a href="/logout" class="logout-btn">Sair</a>
         </div>
     </header>
@@ -383,7 +406,7 @@
 
         {% if cliente %}
 
-        <!-- 1. INFORMAÇÕES DE CRÉDITO DO CLIENTE -->
+        <!-- RESUMO DO CLIENTE -->
         <div class="cliente-header">
             <h2>{{ cliente[1] }}</h2>
             <div class="cliente-info">
@@ -406,10 +429,10 @@
             </div>
         </div>
 
-        <!-- CARDS DE RESUMO DE CRÉDITO -->
+        <!-- CARDS DE RESUMO -->
         <div class="summary-cards">
             <div class="card {% if saldo_credito >= 0 %}success{% else %}danger{% endif %}">
-                <h3>Saldo de Crédito Disponível</h3>
+                <h3>Saldo de Crédito</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(saldo_credito) }}</div>
                 <div class="card-subtitle">
                     {% if saldo_credito >= 0 %}
@@ -421,7 +444,7 @@
             </div>
 
             <div class="card {% if dias_atraso == 0 %}success{% elif dias_atraso <= 30 %}warning{% else %}danger{% endif %}">
-                <h3>Dias em Atraso</h3>
+                <h3>Maior Atraso</h3>
                 <div class="card-value">{{ dias_atraso }}</div>
                 <div class="card-subtitle">
                     {% if dias_atraso == 0 %}
@@ -435,7 +458,7 @@
             </div>
 
             <div class="card">
-                <h3>Dias Sem Comprar</h3>
+                <h3>Dias desde Última Compra</h3>
                 <div class="card-value">{{ dias_ultima_compra }}</div>
                 <div class="card-subtitle">
                     {% if dias_ultima_compra == 0 %}
@@ -449,48 +472,33 @@
                     {% endif %}
                 </div>
             </div>
-
-            <div class="card">
-                <h3>Última Fatura</h3>
-                <div class="card-value">R$ {{ "%.2f"|format(cliente[4]) }}</div>
-                <div class="card-subtitle">
-                    {% if cliente[6] %}
-                        {{ cliente[6].strftime('%d/%m/%Y') }}
-                    {% else %}
-                        Sem registros
-                    {% endif %}
-                </div>
-            </div>
         </div>
 
-        <!-- 2. ANÁLISE DE COMPRAS - CURVA ABC -->
+        <!-- ANÁLISE ABC -->
         {% if produtos %}
         <div class="section">
-            <h3>📊 2. Análise de Compras - Curva ABC dos Produtos</h3>
+            <h3>📊 Análise ABC de Produtos</h3>
 
             <div class="abc-chart">
                 <div class="abc-item a">
                     <div class="abc-letter">A</div>
                     <div class="abc-description">
-                        <strong>80% das vendas</strong><br>
-                        Produtos estratégicos<br>
-                        Foco em manutenção
+                        <strong>80%</strong><br>
+                        Total de Vendas
                     </div>
                 </div>
                 <div class="abc-item b">
                     <div class="abc-letter">B</div>
                     <div class="abc-description">
-                        <strong>15% das vendas</strong><br>
-                        Produtos complementares<br>
-                        Monitoramento regular
+                        <strong>15%</strong><br>
+                        Importância Média
                     </div>
                 </div>
                 <div class="abc-item c">
                     <div class="abc-letter">C</div>
                     <div class="abc-description">
-                        <strong>5% das vendas</strong><br>
-                        Produtos pontuais<br>
-                        Controle simplificado
+                        <strong>5%</strong><br>
+                        Baixa Importância
                     </div>
                 </div>
             </div>
@@ -500,11 +508,11 @@
                     <tr>
                         <th>Código</th>
                         <th>Descrição</th>
-                        <th>Classe ABC</th>
+                        <th>Classe</th>
                         <th>Quantidade</th>
                         <th>Valor Total</th>
-                        <th>Nº Compras</th>
-                        <th>% do Total</th>
+                        <th>Compras</th>
+                        <th>%</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -514,7 +522,7 @@
                         <td>{{ produto.descricao }}</td>
                         <td>
                             <span class="badge badge-{{ produto.classe|lower }}">
-                                Classe {{ produto.classe }}
+                                {{ produto.classe }}
                             </span>
                         </td>
                         <td>{{ produto.quantidade|int }}</td>
@@ -525,23 +533,13 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            <div class="recommendations">
-                <h4>📋 Recomendações Estratégicas</h4>
-                <ul>
-                    <li><strong>Produtos Classe A:</strong> Manter estoque sempre disponível e negociar melhores condições comerciais</li>
-                    <li><strong>Produtos Classe B:</strong> Monitorar demanda e ajustar quantidade conforme necessário</li>
-                    <li><strong>Produtos Classe C:</strong> Considerar descontinuar ou agrupar em promoções</li>
-                    <li><strong>Oportunidades:</strong> Identificar produtos com potencial de crescimento na Classe B</li>
-                </ul>
-            </div>
         </div>
         {% endif %}
 
-        <!-- 3. COMPARATIVO DE VENDAS (2025 vs 2026) -->
+        <!-- COMPARATIVO DE VENDAS -->
         {% if comparativo %}
         <div class="section">
-            <h3>📈 3. Comparativo de Vendas - Ano Passado vs Ano Atual</h3>
+            <h3>📈 Comparativo de Vendas</h3>
 
             <div class="chart-container">
                 <canvas id="chartComparativo"></canvas>
@@ -554,7 +552,7 @@
                         <th>2025</th>
                         <th>2026</th>
                         <th>Variação</th>
-                        <th>% Variação</th>
+                        <th>%</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -583,26 +581,93 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            <div class="recommendations" style="margin-top: 20px;">
-                <h4>📊 Interpretação dos Resultados</h4>
-                <ul>
-                    <li><strong>Tendências Significativas:</strong> Analise os meses com maior crescimento ou queda para identificar padrões sazonais</li>
-                    <li><strong>Fatores de Influência:</strong> Considere promoções, períodos festivos, variações de demanda sazonal e ações comerciais</li>
-                    <li><strong>Oportunidades:</strong> Meses com baixo desempenho podem indicar necessidade de ações comerciais ou revisão de estratégia</li>
-                    <li><strong>Planejamento:</strong> Use o histórico para prever demanda e planejar estoque e recursos</li>
-                </ul>
-            </div>
         </div>
         {% endif %}
 
-        <!-- MELHORES PRÁTICAS E ARMADILHAS -->
+        <!-- RECOMENDAÇÕES -->
         <div class="section">
-            <h3>💡 Melhores Práticas e Armadilhas a Evitar</h3>
+            <h3>💡 Recomendações</h3>
 
             <div class="recommendations">
-                <h4>✓ Melhores Práticas do Setor</h4>
+                <h4>✓ Ações Recomendadas</h4>
                 <ul>
-                    <li><strong>Gestão de Crédito:</strong> Revisar limites anualmente e ajustar conforme histórico de pagamento</li>
-                    <li><strong>Análise de Sazonalidade:</strong> Identificar períodos de maior
+                    <li><strong>Monitorar de perto os pagamentos em atraso.</strong></li>
+                    <li><strong>Incentivar novas compras com promoções.</strong></li>
+                    <li><strong>Aumentar o limite de crédito com cautela.</strong></li>
+                    <li><strong>Revisar produtos da Classe A para melhor rentabilidade.</strong></li>
+                    <li><strong>Analisar sazonalidade nas vendas para planejamento futuro.</strong></li>
+                </ul>
+            </div>
+        </div>
 
+        {% else %}
+        <div class="cliente-header">
+            <h2>⚠️ Cliente não encontrado</h2>
+            <p>O cliente solicitado não existe no sistema.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Gráfico de Comparativo de Vendas
+        const ctx = document.getElementById('chartComparativo');
+        if (ctx) {
+            const comparativo = {{ comparativo|tojson }};
+
+            const meses = comparativo.map(m => m.mes);
+            const vendas2025 = comparativo.map(m => m['2025']);
+            const vendas2026 = comparativo.map(m => m['2026']);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        {
+                            label: 'Ano Passado',
+                            data: vendas2025,
+                            borderColor: '#4caf50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Ano Atual',
+                            data: vendas2026,
+                            borderColor: '#1976d2',
+                            backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
