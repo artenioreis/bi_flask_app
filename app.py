@@ -8,7 +8,6 @@ import pandas as pd
 from datetime import datetime
 from functools import wraps
 
-# Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -17,11 +16,9 @@ app.config['SECRET_KEY'] = 'varejao_bi_2026'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Caminho da planilha Excel de Objetivos
 EXCEL_PATH = r'C:\Projeto_Varejao\bi_flask_app\database\Vlr_ObjetivoClie.xlsx'
 
 def execute_query(query):
-    """Executa consultas no SQL Server utilizando a configuração do projeto"""
     try:
         config_path = os.path.join(app.root_path, 'database', 'config.json')
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -39,7 +36,6 @@ def execute_query(query):
         return []
 
 def get_objetivos_excel():
-    """Lê os objetivos de faturamento do arquivo Excel"""
     try:
         if os.path.exists(EXCEL_PATH):
             df = pd.read_excel(EXCEL_PATH)
@@ -76,26 +72,23 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Painel principal com filtros ajustados para performance e correção de vendedor"""
     filtro = request.args.get('tipo', 'todos')
     valor = request.args.get('valor', '').strip()
-    
-    # Busca lista de vendedores garantindo que o filtro de bloqueio funcione (IN '0' ou 0)
     vendedores = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado IN ('0', 0) ORDER BY Nome_guerra")
 
-    # Lógica: Não carrega clientes se não houver um valor de pesquisa (exceto se for "todos" e valor vazio)
-    # Para performance, forçamos o uso do filtro se a base for grande
     if not valor and filtro != 'todos':
-        return render_template('dashboard.html', clientes=[], vendedores=vendedores, filtro_ativo=filtro, valor_filtro='', 
-                             total_clientes=0, total_notas_canceladas=0, valor_notas_canceladas=0, faturamento_total=0, clientes_devedores=0)
+        return render_template('dashboard.html', clientes=[], vendedores=vendedores, filtro_ativo=filtro, valor_filtro='')
 
-    # Query Corrigida: JOIN por Codigo para garantir funcionamento do filtro de vendedor
+    # Query Ajustada: Filtra apenas vendas do MÊS ATUAL para comparação com o objetivo
     query = """
     SELECT cl.Codigo, cl.Razao_Social, 
     CASE WHEN cl.Bloqueado = '0' THEN 'Não' ELSE 'Sim' END,
     ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 0,
     ISNULL(cl.Maior_Atraso, 0), cl.Data_UltimaFatura, ISNULL(ve.Nome_guerra, 'N/A'), 0,
-    (SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = cl.Codigo AND Status = 'F' AND YEAR(Dat_Emissao) = 2026)
+    (SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB 
+     WHERE Cod_Cliente = cl.Codigo AND Status = 'F' 
+     AND MONTH(Dat_Emissao) = MONTH(GETDATE()) 
+     AND YEAR(Dat_Emissao) = YEAR(GETDATE()))
     FROM clien cl
     LEFT JOIN enxes en ON cl.Codigo = en.Cod_Client AND en.Cod_Estabe = 0
     LEFT JOIN vende ve ON en.Cod_Vendedor = ve.Codigo
@@ -107,50 +100,42 @@ def dashboard():
     res_db = execute_query(query + " ORDER BY cl.Razao_Social")
     objetivos = get_objetivos_excel()
     
-    # Métricas globais para o dashboard
-    faturamento_total = execute_query("SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Status = 'F' AND YEAR(Dat_Emissao) = 2026")[0][0]
-    canceladas = execute_query("SELECT COUNT(*), ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Status = 'C' AND YEAR(Dat_Emissao) = 2026")[0]
-
     clientes_finais = []
     for r in res_db:
         cliente_lista = list(r)
         cod = cliente_lista[0]
-        vendas = float(cliente_lista[10])
+        vendas_mes = float(cliente_lista[10])
         obj = objetivos.get(cod, 0)
-        cliente_lista.append(obj) # Meta do Excel (Index 11)
-        atingimento = (vendas / obj * 100) if obj > 0 else 0
-        cliente_lista.append(atingimento) # % de Atingimento (Index 12)
+        cliente_lista.append(obj) # Meta Mensal (Index 11)
+        atingimento = (vendas_mes / obj * 100) if obj > 0 else 0
+        cliente_lista.append(atingimento) # % Atingimento (Index 12)
         clientes_finais.append(cliente_lista)
 
-    return render_template('dashboard.html', 
-                         clientes=clientes_finais, 
-                         vendedores=vendedores, 
-                         filtro_ativo=filtro, 
-                         valor_filtro=valor,
-                         total_clientes=len(res_db),
-                         total_notas_canceladas=canceladas[0],
-                         valor_notas_canceladas=float(canceladas[1]),
-                         faturamento_total=float(faturamento_total),
-                         clientes_devedores=0) # Ajustar query de devedores se necessário
+    return render_template('dashboard.html', clientes=clientes_finais, vendedores=vendedores, filtro_ativo=filtro, valor_filtro=valor)
 
 @app.route('/analise/<int:cliente_id>')
 @login_required
 def analise_cliente(cliente_id):
-    """Análise individual com histórico de 3 anos"""
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0), 0, ISNULL(Maior_Atraso, 0) FROM clien WHERE Codigo = {cliente_id}")
     if not res: return redirect(url_for('dashboard'))
     cliente = res[0]
     
     objetivos = get_objetivos_excel()
     obj_valor = objetivos.get(cliente_id, 0)
-    vendas_2026 = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND YEAR(Dat_Emissao) = 2026")[0][0]
+    
+    # Busca vendas do Mês Atual para o card de análise
+    vendas_res = execute_query(f"""
+        SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB 
+        WHERE Cod_Cliente = {cliente_id} AND Status = 'F' 
+        AND MONTH(Dat_Emissao) = MONTH(GETDATE()) 
+        AND YEAR(Dat_Emissao) = YEAR(GETDATE())""")
+    vendas_mes = float(vendas_res[0][0]) if vendas_res else 0.0
 
-    # Histórico Mensal Trienal
     raw_hist = execute_query(f"""
         SELECT MONTH(Dat_Emissao), YEAR(Dat_Emissao), SUM(Vlr_TotalNota) 
         FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) 
-        GROUP BY MONTH(Dat_Emissao), YEAR(Dat_Emissao) ORDER BY 1, 2
-    """)
+        GROUP BY MONTH(Dat_Emissao), YEAR(Dat_Emissao) ORDER BY 1, 2""")
+    
     meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ']
     comparativo = {i: {'mes': meses[i-1], '2024': 0, '2025': 0, '2026': 0} for i in range(1, 13)}
     for r in raw_hist: comparativo[r[0]][str(r[1])] = float(r[2])
@@ -162,7 +147,7 @@ def analise_cliente(cliente_id):
                          saldo=float(cliente[2]-cliente[3]), 
                          dias_atraso=int(cliente[5]),
                          objetivo=obj_valor,
-                         vendas_atual=float(vendas_2026))
+                         vendas_atual=vendas_mes)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

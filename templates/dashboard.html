@@ -28,39 +28,12 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-section img {
-            height: 45px;
-        }
-
-        .logout-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid white;
-            padding: 8px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: white;
-            color: #667eea;
-        }
-
         .container {
             max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
         }
 
-        /* Estilos dos Filtros */
         .filters {
             background: white;
             padding: 25px;
@@ -102,11 +75,6 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.3s;
-        }
-
-        .btn-filter:hover {
-            background: #764ba2;
         }
 
         .btn-reset {
@@ -119,7 +87,6 @@
             font-weight: bold;
         }
 
-        /* Estilos da Tabela */
         .table-container {
             background: white;
             border-radius: 8px;
@@ -131,11 +98,6 @@
             padding: 20px;
             border-bottom: 2px solid #667eea;
             background: #f9f9f9;
-        }
-
-        .table-header h3 {
-            color: #667eea;
-            margin: 0;
         }
 
         table {
@@ -150,7 +112,7 @@
             background: #f5f5f5;
             color: #667eea;
             text-transform: uppercase;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         td {
@@ -168,14 +130,14 @@
             font-weight: bold;
         }
 
-        .action-link:hover {
-            background: #764ba2;
+        .status-bloqueado {
+            color: #f5576c;
+            font-weight: bold;
         }
 
-        .atingimento-badge {
+        .status-ativo {
+            color: #4caf50;
             font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 4px;
         }
 
         .empty-state {
@@ -183,23 +145,19 @@
             padding: 60px;
             color: #999;
         }
-
-        .empty-state h2 {
-            color: #666;
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 
 <body>
     <header>
-        <div class="logo-section">
-            <img src="/static/images/logo.png" alt="Logo Varejão">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <img src="/static/images/logo.png" alt="Logo" style="height: 45px;">
             <h1>BI Varejão</h1>
         </div>
         <div>
-            <span style="margin-right: 15px;">Utilizador: <strong>{{ session.get('user') }}</strong></span>
-            <a href="/logout" class="logout-btn">Sair</a>
+            <span>Bem-vindo, <strong>{{ session.get('user') }}</strong></span>
+            <a href="/logout"
+                style="margin-left: 20px; color: white; text-decoration: none; border: 1px solid white; padding: 5px 15px; border-radius: 5px;">Sair</a>
         </div>
     </header>
 
@@ -210,16 +168,15 @@
                 <select id="filterType" onchange="toggleInputs()">
                     <option value="todos" {% if filtro_ativo=='todos' %}selected{% endif %}>Selecione um Filtro</option>
                     <option value="vendedor" {% if filtro_ativo=='vendedor' %}selected{% endif %}>Vendedor</option>
-                    <option value="cliente" {% if filtro_ativo=='cliente' %}selected{% endif %}>Cliente (Nome ou Código)
-                    </option>
+                    <option value="cliente" {% if filtro_ativo=='cliente' %}selected{% endif %}>Cliente</option>
                 </select>
             </div>
 
             <div class="filter-group" id="vendedorInput"
                 style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};">
-                <label>Selecionar Vendedor:</label>
+                <label>Vendedor:</label>
                 <select id="vendedorSelect">
-                    <option value="">-- Escolha um Vendedor --</option>
+                    <option value="">-- Selecione o Vendedor --</option>
                     {% for v in vendedores %}
                     <option value="{{ v[0] }}" {% if valor_filtro|string==v[0]|string %}selected{% endif %}>{{ v[1] }}
                     </option>
@@ -230,8 +187,7 @@
             <div class="filter-group" id="clienteInput"
                 style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};">
                 <label>Pesquisar Cliente:</label>
-                <input type="text" id="clienteSearch" value="{{ valor_filtro }}"
-                    placeholder="Digite o nome ou código...">
+                <input type="text" id="clienteSearch" value="{{ valor_filtro }}" placeholder="Nome ou Código...">
             </div>
 
             <button class="btn-filter" onclick="applyFilter()">🔍 Filtrar</button>
@@ -240,7 +196,7 @@
 
         <div class="table-container">
             <div class="table-header">
-                <h3>📋 Painel Geral de Clientes</h3>
+                <h3>📋 Painel Geral de Clientes (Mês Atual)</h3>
             </div>
 
             {% if clientes %}
@@ -248,11 +204,11 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Código</th>
+                            <th>Cód</th>
                             <th>Razão Social</th>
-                            <th>Vlr_ObjetivoCliente</th>
-                            <th>Vendas 2026</th>
-                            <th>% Atingimento</th>
+                            <th>Objetivo Mensal</th>
+                            <th>Vendas do Mês</th>
+                            <th>% Meta</th>
                             <th>Atraso</th>
                             <th>Vendedor</th>
                             <th>Ação</th>
@@ -266,8 +222,7 @@
                             <td style="color: #764ba2; font-weight: bold;">R$ {{ "%.2f"|format(c[11]) }}</td>
                             <td style="color: #1976d2; font-weight: bold;">R$ {{ "%.2f"|format(c[10]) }}</td>
                             <td>
-                                <span class="atingimento-badge"
-                                    style="color: {{ '#4caf50' if c[12] >= 100 else '#ff9800' }};">
+                                <span style="color: {{ '#4caf50' if c[12] >= 100 else '#ff9800' }}; font-weight: bold;">
                                     {{ "%.1f"|format(c[12]) }}%
                                 </span>
                             </td>
@@ -281,10 +236,8 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <div style="font-size: 50px; margin-bottom: 15px;">🔍</div>
-                <h2>Aguardando Filtro</h2>
-                <p>Para otimizar a velocidade, os dados não são carregados automaticamente. Utilize os filtros acima
-                    para pesquisar.</p>
+                <h2>Aguardando Pesquisa</h2>
+                <p>Utilize os filtros acima para carregar os dados de vendas e objetivos.</p>
             </div>
             {% endif %}
         </div>
@@ -300,20 +253,9 @@
         function applyFilter() {
             const type = document.getElementById('filterType').value;
             let val = '';
-
-            if (type === 'vendedor') {
-                val = document.getElementById('vendedorSelect').value;
-                if (!val) { alert('Por favor, selecione um vendedor.'); return; }
-            } else if (type === 'cliente') {
-                val = document.getElementById('clienteSearch').value;
-                if (!val) { alert('Por favor, digite o nome ou código do cliente.'); return; }
-            }
-
-            if (type === 'todos') {
-                window.location.href = '/dashboard';
-            } else {
-                window.location.href = `/dashboard?tipo=${type}&valor=${encodeURIComponent(val)}`;
-            }
+            if (type === 'vendedor') val = document.getElementById('vendedorSelect').value;
+            else if (type === 'cliente') val = document.getElementById('clienteSearch').value;
+            window.location.href = type === 'todos' ? '/dashboard' : `/dashboard?tipo=${type}&valor=${val}`;
         }
     </script>
 </body>

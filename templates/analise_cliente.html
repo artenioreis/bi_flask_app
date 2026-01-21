@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Análise Estratégica - {{ cliente[1] }}</title>
+    <title>Análise Estratégica - BI Varejão</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -35,7 +35,7 @@
 
         .card {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             border-top: 6px solid #667eea;
@@ -43,13 +43,14 @@
 
         .card h3 {
             margin: 0 0 10px 0;
-            font-size: 13px;
+            font-size: 12px;
             color: #888;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .card-value {
-            font-size: 28px;
+            font-size: 30px;
             font-weight: bold;
         }
 
@@ -90,10 +91,10 @@
 
         .section {
             background: white;
-            padding: 25px;
+            padding: 30px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
+            margin-top: 25px;
         }
     </style>
 </head>
@@ -101,7 +102,7 @@
 <body>
     <div class="container">
         <a href="/dashboard" class="back-btn">← Voltar ao Dashboard</a>
-        <h2 style="color:#667eea;">{{ cliente[1] }} (Cód: {{ cliente[0] }})</h2>
+        <h2 style="color:#667eea; margin-bottom: 25px;">{{ cliente[1] }} (Cód: {{ cliente[0] }})</h2>
 
         <div class="summary-cards">
             <div class="card limite">
@@ -121,20 +122,22 @@
                 <div class="card-value" style="color: {% if dias_atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};">
                     {% if dias_atraso > 0 %}EM ATRASO{% else %}EM DIA{% endif %}
                 </div>
+                {% if dias_atraso > 0 %}<p style="color:#f5576c; font-size: 13px; margin-top: 10px; font-weight: bold;">
+                    ⚠ Existe parcela vencida!</p>{% endif %}
             </div>
         </div>
 
         <div class="summary-cards">
             <div class="card meta">
-                <h3>Vlr_ObjetivoCliente</h3>
+                <h3>Objetivo Mensal (Excel)</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(objetivo) }}</div>
             </div>
             <div class="card meta">
-                <h3>Realizado 2026</h3>
+                <h3>Realizado no Mês</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(vendas_atual) }}</div>
             </div>
             <div class="card meta">
-                <h3>% da Meta</h3>
+                <h3>% Atingimento</h3>
                 {% set atingimento = (vendas_atual / objetivo * 100) if objetivo > 0 else 0 %}
                 <div class="card-value">{{ "%.1f"|format(atingimento) }}%</div>
                 <div class="progress-container">
@@ -146,23 +149,21 @@
         </div>
 
         <div class="section">
-            <h3>📈 Histórico de Vendas (2024 - 2026)</h3>
-            <div style="height: 350px;"><canvas id="vendasChart"></canvas></div>
+            <h3 style="margin-bottom: 20px; color: #667eea;">📈 Histórico Mensal Trienal (2024 - 2026)</h3>
+            <div style="height: 400px;"><canvas id="vendasChart"></canvas></div>
         </div>
     </div>
 
     <script>
-        // O erro ocorria aqui porque 'comparativo' estava indefinido
         const histData = {{ comparativo| tojson }};
-
         new Chart(document.getElementById('vendasChart'), {
             type: 'line',
             data: {
                 labels: histData.map(m => m.mes),
                 datasets: [
-                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#ccc', fill: false, borderDash: [5, 5] },
-                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#4caf50', fill: false },
-                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#1976d2', borderWidth: 3, fill: true, backgroundColor: 'rgba(25, 118, 210, 0.1)' }
+                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#ccc', fill: false, borderDash: [5, 5], tension: 0.3 },
+                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#4caf50', fill: false, tension: 0.3 },
+                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#1976d2', borderWidth: 3, fill: true, backgroundColor: 'rgba(25, 118, 210, 0.1)', tension: 0.3 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false }
