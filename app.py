@@ -13,18 +13,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'varejao_bi_farma_2026_final_v5'
+app.config['SECRET_KEY'] = 'varejao_bi_farma_2026_grafico_fix'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
 EXCEL_PATH = r'C:\Projeto_Varejao\bi_flask_app\database\Vlr_ObjetivoClie.xlsx'
 
-# ============================================
-# CONEXÃO E UTILITÁRIOS
-# ============================================
-
 def execute_query(query):
-    """Executa consultas no SQL Server de forma segura"""
     try:
         config_path = os.path.join(app.root_path, 'database', 'config.json')
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -38,11 +33,10 @@ def execute_query(query):
         conn.close()
         return res
     except Exception as e:
-        logger.error(f"❌ Erro SQL: {e}")
+        logger.error(f"Erro SQL: {e}")
         return []
 
 def get_objetivos_excel():
-    """Busca metas dos clientes no arquivo Excel"""
     try:
         if os.path.exists(EXCEL_PATH):
             df = pd.read_excel(EXCEL_PATH)
@@ -52,16 +46,11 @@ def get_objetivos_excel():
     return {}
 
 def login_required(f):
-    """Decorador de proteção de rotas"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session: return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-
-# ============================================
-# ROTAS DO SISTEMA
-# ============================================
 
 @app.route('/')
 def index():
@@ -85,7 +74,6 @@ def logout():
 def dashboard():
     filtro = request.args.get('tipo', 'todos')
     valor = request.args.get('valor', '').strip()
-    
     vendedores = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado IN ('0', 0) ORDER BY Nome_guerra")
     cal = {'uteis': 21, 'trabalhados': 13, 'restantes': 8}
     proj_vendedor = None
@@ -93,7 +81,6 @@ def dashboard():
     if not valor and filtro != 'todos':
         return render_template('dashboard.html', clientes=[], vendedores=vendedores, filtro_ativo=filtro, valor_filtro='')
 
-    # Consulta Principal com Atraso Real via CTREC
     query_clie = """
     SELECT cl.Codigo, cl.Razao_Social, CASE WHEN cl.Bloqueado = '0' THEN 'Não' ELSE 'Sim' END,
     ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 0, 
@@ -118,20 +105,16 @@ def dashboard():
         ating_proj = (v_proj / meta * 100) if meta > 0 else 0
         cor = "#f5576c" if ating_proj < 90 else "#ff9800" if ating_proj < 100 else "#4caf50"
         proj_vendedor = {'meta': meta, 'realizado': realizado, 'valor_projecao': v_proj, 'atingimento_proj': ating_proj, 'cor': cor, 'dias': cal}
-    
     elif filtro == 'cliente' and valor:
         query_clie += f" AND (cl.Codigo LIKE '%{valor}%' OR cl.Razao_Social LIKE '%{valor}%')"
 
     res_db = execute_query(query_clie + " ORDER BY cl.Razao_Social")
     obj_excel = get_objetivos_excel()
     clientes_finais = []
-    
     for r in res_db:
         c = list(r)
-        if float(c[4]) <= 0: c[6] = 0 # Força "Em Dia" se débito for 0
-        
+        if float(c[4]) <= 0: c[6] = 0
         meta_c = obj_excel.get(c[0], 0)
-        # CORREÇÃO APLICADA: meta_c em vez do erro m_c
         c.extend([meta_c, (float(c[10])/meta_c*100 if meta_c > 0 else 0)])
         clientes_finais.append(c)
 
@@ -143,24 +126,15 @@ def analise_cliente(cliente_id):
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0), 0 FROM clien WHERE Codigo = {cliente_id}")
     if not res: return redirect(url_for('dashboard'))
     cliente = res[0]
-
-    query_titulos = f"""
-    SELECT Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento,
-    DATEDIFF(DAY, DATEADD(DAY, ISNULL(Qtd_DiaExtVct, 0), Dat_Vencimento), GETDATE()) AS DiasAtraso
-    FROM CTREC WHERE Cod_Cliente = {cliente_id} AND Cod_Estabe = 0 AND Vlr_Saldo > 0 AND Status IN ('A', 'P')
-    ORDER BY Dat_Vencimento ASC"""
-    
+    query_titulos = f"SELECT Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento, DATEDIFF(DAY, DATEADD(DAY, ISNULL(Qtd_DiaExtVct, 0), Dat_Vencimento), GETDATE()) AS DiasAtraso FROM CTREC WHERE Cod_Cliente = {cliente_id} AND Cod_Estabe = 0 AND Vlr_Saldo > 0 AND Status IN ('A', 'P') ORDER BY Dat_Vencimento ASC"
     titulos = execute_query(query_titulos)
     maior_atraso = max([int(t[6]) for t in titulos if int(t[6]) > 0] or [0])
-
     objetivo = get_objetivos_excel().get(cliente_id, 0)
     vendas_mes = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND MONTH(Dat_Emissao) = 1 AND YEAR(Dat_Emissao) = 2026")[0][0])
     raw_hist = execute_query(f"SELECT MONTH(Dat_Emissao), YEAR(Dat_Emissao), SUM(Vlr_TotalNota) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) GROUP BY MONTH(Dat_Emissao), YEAR(Dat_Emissao) ORDER BY 1, 2")
-    
     meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ']
     comp = {i: {'mes': meses[i-1], '2024': 0, '2025': 0, '2026': 0} for i in range(1, 13)}
     for r in raw_hist: comp[r[0]][str(r[1])] = float(r[2])
-
     return render_template('analise_cliente.html', cliente=cliente, comparativo=list(comp.values()), limite_credito=float(cliente[2]), saldo=float(cliente[2]-cliente[3]), dias_atraso=maior_atraso, objetivo=objetivo, vendas_atual=vendas_mes, titulos=titulos)
 
 if __name__ == '__main__':

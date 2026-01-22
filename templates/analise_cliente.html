@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Análise Estratégica - BI Varejão Farma</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         * {
             margin: 0;
@@ -64,11 +65,6 @@
             border-left: 5px solid #667eea;
         }
 
-        .client-header h2 {
-            font-size: 20px;
-            color: #444;
-        }
-
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -103,10 +99,6 @@
 
         .card.danger {
             border-left-color: #f5576c;
-        }
-
-        .card.meta {
-            border-left-color: #764ba2;
         }
 
         .section {
@@ -163,21 +155,8 @@
         }
 
         .chart-box {
-            height: 280px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            background: #eee;
-            height: 5px;
-            border-radius: 3px;
-            margin-top: 8px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #4caf50;
+            height: 350px;
+            padding-top: 20px;
         }
     </style>
 </head>
@@ -211,7 +190,7 @@
             </div>
         </div>
         <div class="summary-grid">
-            <div class="card meta">
+            <div class="card" style="border-left-color: #764ba2;">
                 <h3>Objetivo Mês</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(objetivo) }}</div>
             </div>
@@ -223,9 +202,6 @@
                 <h3>% Meta</h3>
                 {% set atingimento = (vendas_atual / objetivo * 100) if objetivo > 0 else 0 %}
                 <div class="card-value">{{ "%.1f"|format(atingimento) }}%</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ [atingimento, 100]|min }}%;"></div>
-                </div>
             </div>
         </div>
         <div class="section">
@@ -260,13 +236,70 @@
             </p>{% endif %}
         </div>
         <div class="section">
-            <h3>📈 Evolução Mensal</h3>
+            <h3>📈 Evolução Mensal (2024 - 2026)</h3>
             <div class="chart-box"><canvas id="vendasChart"></canvas></div>
         </div>
     </div>
     <script>
+        // Registrar o plugin de datalabels
+        Chart.register(ChartDataLabels);
+
         const histData = {{ comparativo| tojson }};
-        new Chart(document.getElementById('vendasChart'), { type: 'line', data: { labels: histData.map(m => m.mes), datasets: [{ label: '2024', data: histData.map(m => m['2024']), borderColor: '#bdc3c7', borderDash: [4, 4], fill: false, pointRadius: 0 }, { label: '2025', data: histData.map(m => m['2025']), borderColor: '#2ecc71', fill: false, pointRadius: 0 }, { label: '2026', data: histData.map(m => m['2026']), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.05)', borderWidth: 2, fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { y: { ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } } } });
+        new Chart(document.getElementById('vendasChart'), {
+            type: 'line',
+            data: {
+                labels: histData.map(m => m.mes),
+                datasets: [
+                    {
+                        label: '2024',
+                        data: histData.map(m => m['2024']),
+                        borderColor: '#bdc3c7',
+                        borderDash: [4, 4],
+                        fill: false,
+                        pointRadius: 4,
+                        datalabels: { align: 'top', anchor: 'end' }
+                    },
+                    {
+                        label: '2025',
+                        data: histData.map(m => m['2025']),
+                        borderColor: '#2ecc71',
+                        fill: false,
+                        pointRadius: 4,
+                        datalabels: { align: 'top', anchor: 'end' }
+                    },
+                    {
+                        label: '2026',
+                        data: histData.map(m => m['2026']),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 6,
+                        datalabels: { align: 'top', anchor: 'end', font: { weight: 'bold' } }
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                    datalabels: {
+                        color: '#444',
+                        font: { size: 9 },
+                        formatter: function (value) {
+                            return value > 0 ? value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '';
+                        },
+                        padding: 4
+                    }
+                },
+                scales: {
+                    y: { ticks: { font: { size: 9 } }, beginAtZero: true },
+                    x: { ticks: { font: { size: 9 } } }
+                }
+            }
+        });
     </script>
 </body>
 
