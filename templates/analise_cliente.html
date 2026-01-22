@@ -13,99 +13,87 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: #f5f7fa;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f2f5;
             color: #333;
         }
 
-        /* NOVO HEADER MELHORADO (IDÊNTICO AO DASHBOARD) */
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px 40px;
+            padding: 12px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .brand h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 20px;
             font-weight: 800;
-            letter-spacing: 1px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .brand span {
             color: #a3dffb;
-            font-weight: 500;
-        }
-
-        .user-info {
-            font-size: 14px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 8px 18px;
-            border-radius: 30px;
-            backdrop-filter: blur(5px);
         }
 
         .container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 25px;
+            max-width: 1300px;
+            margin: 15px auto;
+            padding: 0 15px;
         }
 
         .back-btn {
             display: inline-block;
-            margin-bottom: 25px;
+            margin-bottom: 12px;
             background: #667eea;
             color: white;
-            padding: 12px 25px;
+            padding: 6px 15px;
             border-radius: 5px;
             text-decoration: none;
+            font-size: 12px;
             font-weight: 600;
-            transition: 0.3s;
         }
 
-        .back-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        .client-header {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            margin-bottom: 15px;
+            border-left: 5px solid #667eea;
         }
 
-        .summary-cards {
+        .client-header h2 {
+            font-size: 20px;
+            color: #444;
+        }
+
+        .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
         .card {
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border-left: 6px solid #667eea;
-            transition: 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            border-left: 4px solid #667eea;
         }
 
         .card h3 {
             color: #999;
-            font-size: 13px;
+            font-size: 9px;
             text-transform: uppercase;
-            margin-bottom: 10px;
-            letter-spacing: 1px;
+            margin-bottom: 5px;
             font-weight: 700;
         }
 
         .card-value {
-            font-size: 32px;
+            font-size: 22px;
             font-weight: 700;
         }
 
@@ -115,11 +103,6 @@
 
         .card.danger {
             border-left-color: #f5576c;
-            background: #fff5f6;
-        }
-
-        .card.info {
-            border-left-color: #1976d2;
         }
 
         .card.meta {
@@ -128,53 +111,73 @@
 
         .section {
             background: white;
-            padding: 35px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            margin-bottom: 15px;
         }
 
         .section h3 {
             color: #667eea;
-            font-size: 20px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 5px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            font-size: 12px;
         }
 
         th {
             text-align: left;
-            padding: 12px;
+            padding: 8px;
             background: #f8f9fa;
             color: #667eea;
-            font-size: 11px;
+            font-size: 9px;
             text-transform: uppercase;
-            border-bottom: 2px solid #667eea;
         }
 
         td {
-            padding: 12px;
+            padding: 8px;
             border-bottom: 1px solid #eee;
-            font-size: 13px;
         }
 
-        .status-vencido {
-            color: #f5576c;
-            font-weight: bold;
+        .status-tag {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        .vencido {
             background: #fff5f6;
-            padding: 4px 8px;
-            border-radius: 4px;
+            color: #f5576c;
         }
 
-        .chart-container {
-            height: 350px;
-            position: relative;
+        .em-dia {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .chart-box {
+            height: 280px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background: #eee;
+            height: 5px;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4caf50;
         }
     </style>
 </head>
@@ -184,22 +187,17 @@
         <div class="brand">
             <h1>BI Varejão <span>Farma</span></h1>
         </div>
-        <div class="user-info">
-            <span>Usuário: <strong>{{ session.get('user') }}</strong></span>
-        </div>
+        <div class="user-info">Olá, <strong>{{ session.get('user') }}</strong></div>
     </header>
-
     <div class="container">
-        <a href="/dashboard" class="back-btn">← Voltar ao Dashboard</a>
-
-        <div class="section" style="border-left: 8px solid #667eea;">
-            <h2 style="font-size: 32px; color: #444; margin-bottom: 5px;">{{ cliente[1] }}</h2>
-            <p style="color: #888; font-weight: 600; font-size: 14px;">CÓDIGO: {{ cliente[0] }}</p>
+        <a href="/dashboard" class="back-btn">← Voltar</a>
+        <div class="client-header">
+            <h2>{{ cliente[1] }}</h2>
+            <p style="font-size:11px; color:#888;">CÓDIGO: {{ cliente[0] }}</p>
         </div>
-
-        <div class="summary-cards">
-            <div class="card info">
-                <h3>Limite de Crédito</h3>
+        <div class="summary-grid">
+            <div class="card">
+                <h3>Limite</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(limite_credito) }}</div>
             </div>
             <div class="card {% if saldo >= 0 %}success{% else %}danger{% endif %}">
@@ -208,20 +206,16 @@
             </div>
             <div class="card {% if dias_atraso > 0 %}danger{% else %}success{% endif %}">
                 <h3>Status de Pagamento</h3>
-                <div class="card-value" style="color:{% if dias_atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};">
-                    {% if dias_atraso > 0 %}EM ATRASO{% else %}EM DIA{% endif %}
-                </div>
-                <p style="font-size: 13px; margin-top: 10px; color: #666;">{% if dias_atraso > 0 %}⚠ {{ dias_atraso }}
-                    dias (Via CTREC){% else %}✓ Nenhuma pendência vencida{% endif %}</p>
+                <div class="card-value" style="color:{% if dias_atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};">{% if
+                    dias_atraso > 0 %}EM ATRASO{% else %}EM DIA{% endif %}</div>
             </div>
         </div>
-
-        <div class="summary-cards">
+        <div class="summary-grid">
             <div class="card meta">
                 <h3>Objetivo Mês</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(objetivo) }}</div>
             </div>
-            <div class="card info">
+            <div class="card">
                 <h3>Venda Real</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(vendas_atual) }}</div>
             </div>
@@ -229,27 +223,23 @@
                 <h3>% Meta</h3>
                 {% set atingimento = (vendas_atual / objetivo * 100) if objetivo > 0 else 0 %}
                 <div class="card-value">{{ "%.1f"|format(atingimento) }}%</div>
-                <div
-                    style="width: 100%; background: #eee; height: 10px; border-radius: 5px; margin-top: 15px; overflow: hidden;">
-                    <div
-                        style="width: {{ [atingimento, 100]|min }}%; background: #4caf50; height: 100%; border-radius: 5px;">
-                    </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ [atingimento, 100]|min }}%;"></div>
                 </div>
             </div>
         </div>
-
-        <div class="section" style="border-left: 8px solid #f5576c;">
-            <h3>📑 Detalhamento de Títulos em Aberto (CTREC)</h3>
+        <div class="section">
+            <h3>📑 Financeiro Detalhado (CTREC)</h3>
             {% if titulos %}
             <table>
                 <thead>
                     <tr>
-                        <th>Documento</th>
-                        <th>Parc.</th>
+                        <th>Doc</th>
+                        <th>Parc</th>
                         <th>Vencimento</th>
                         <th>Valor</th>
                         <th>Saldo</th>
-                        <th>Atraso</th>
+                        <th>Situação</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -260,43 +250,23 @@
                         <td>{{ t[5].strftime('%d/%m/%Y') }}</td>
                         <td>R$ {{ "%.2f"|format(t[2]) }}</td>
                         <td style="font-weight:bold;">R$ {{ "%.2f"|format(t[3]) }}</td>
-                        <td><span class="{% if t[6] > 0 %}status-vencido{% endif %}">{% if t[6] > 0 %}{{ t[6] }} dias{%
-                                else %}A vencer{% endif %}</span></td>
+                        <td><span class="status-tag {% if t[6] > 0 %}vencido{% else %}em-dia{% endif %}">{% if t[6] > 0
+                                %}{{ t[6] }} DIAS{% else %}A VENCER{% endif %}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p
-                style="color: #4caf50; font-weight: bold; padding: 15px; background: #e8f5e9; border-radius: 6px; display: inline-block;">
-                ✓ Sem títulos pendentes.</p>
-            {% endif %}
+            {% else %}<p style="color: #4caf50; font-size: 11px; text-align: center; padding: 5px;">✓ Nenhuma pendência.
+            </p>{% endif %}
         </div>
-
         <div class="section">
-            <h3>📈 Evolução de Vendas (2024 - 2026)</h3>
-            <div class="chart-container"><canvas id="vendasChart"></canvas></div>
+            <h3>📈 Evolução Mensal</h3>
+            <div class="chart-box"><canvas id="vendasChart"></canvas></div>
         </div>
     </div>
-
     <script>
         const histData = {{ comparativo| tojson }};
-        new Chart(document.getElementById('vendasChart'), {
-            type: 'line',
-            data: {
-                labels: histData.map(m => m.mes),
-                datasets: [
-                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#ccc', borderDash: [5, 5], fill: false, pointRadius: 2 },
-                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#4caf50', fill: false, pointRadius: 3 },
-                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#1976d2', backgroundColor: 'rgba(25, 118, 210, 0.15)', borderWidth: 3, fill: true, tension: 0.3, pointRadius: 5, pointHoverRadius: 7 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { padding: 20, font: { weight: 'bold' } } } },
-                scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } }
-            }
-        });
+        new Chart(document.getElementById('vendasChart'), { type: 'line', data: { labels: histData.map(m => m.mes), datasets: [{ label: '2024', data: histData.map(m => m['2024']), borderColor: '#bdc3c7', borderDash: [4, 4], fill: false, pointRadius: 0 }, { label: '2025', data: histData.map(m => m['2025']), borderColor: '#2ecc71', fill: false, pointRadius: 0 }, { label: '2026', data: histData.map(m => m['2026']), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.05)', borderWidth: 2, fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { y: { ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } } } });
     </script>
 </body>
 
