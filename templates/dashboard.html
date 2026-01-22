@@ -3,58 +3,94 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Varejão Farma- Dashboard</title>
+    <title>BI Varejão Farma - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             background: #f4f7f6;
             margin: 0;
         }
 
+        /* NOVO HEADER MELHORADO */
         header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 15px 30px;
+            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand span {
+            color: #a3dffb;
+            font-weight: 500;
+        }
+
+        /* Cor de destaque para FARMA */
+        .user-info {
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 18px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+
+        .user-info a {
+            color: #a3dffb;
+            text-decoration: none;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: 0.3s;
+        }
+
+        .user-info a:hover {
+            color: white;
         }
 
         .container {
-            padding: 20px;
+            padding: 25px;
             max-width: 1400px;
             margin: auto;
         }
 
         .filters {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
+            border-radius: 12px;
             display: flex;
             gap: 15px;
             align-items: flex-end;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
         }
 
         .card {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .projection-grid {
             display: grid;
             grid-template-columns: 1fr 280px;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 25px;
+            margin-bottom: 25px;
         }
 
         .termometro-wrap {
-            max-width: 250px;
-            height: 160px;
+            max-width: 220px;
+            height: 150px;
             margin: 0 auto;
             position: relative;
         }
@@ -63,56 +99,78 @@
             width: 100%;
             border-collapse: collapse;
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
         }
 
         th {
             background: #f8f9fa;
             color: #667eea;
-            padding: 12px;
+            padding: 15px;
             text-align: left;
             font-size: 11px;
             text-transform: uppercase;
             border-bottom: 2px solid #667eea;
+            font-weight: 700;
         }
 
         td {
-            padding: 10px 12px;
+            padding: 15px;
             border-bottom: 1px solid #eee;
             font-size: 13px;
+            vertical-align: middle;
         }
 
         .btn {
             background: #667eea;
             color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            border-radius: 6px;
             text-decoration: none;
             font-size: 12px;
             cursor: pointer;
             border: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        select,
+        input {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-family: inherit;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>BI Varejão Farma</h1>
-        <div><strong>{{ session.get('user') }}</strong> | <a href="/logout" style="color:white;">Sair</a></div>
+        <div class="brand">
+            <h1>BI Varejão <span>Farma</span></h1>
+        </div>
+        <div class="user-info">
+            Olá, <strong>{{ session.get('user') }}</strong> | <a href="/logout">Sair</a>
+        </div>
     </header>
     <div class="container">
         <div class="filters">
             <div>
-                <label style="display:block; font-size:10px; font-weight:bold;">TIPO</label>
-                <select id="tipo" onchange="toggle()" style="padding:8px; border-radius:4px; border:1px solid #ddd;">
+                <label style="display:block; font-size:11px; font-weight:bold; color:#666; margin-bottom:5px;">FILTRAR
+                    POR</label>
+                <select id="tipo" onchange="toggle()">
                     <option value="todos" {% if filtro_ativo=='todos' %}selected{% endif %}>Selecione...</option>
                     <option value="vendedor" {% if filtro_ativo=='vendedor' %}selected{% endif %}>Vendedor</option>
                     <option value="cliente" {% if filtro_ativo=='cliente' %}selected{% endif %}>Cliente</option>
                 </select>
             </div>
             <div id="vInput" style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};">
-                <select id="vSel" style="padding:8px; border-radius:4px; border:1px solid #ddd;">
+                <select id="vSel" style="min-width: 200px;">
                     <option value="">-- Escolha --</option>
                     {% for v in vendedores %}<option value="{{ v[0] }}" {% if valor_filtro|string==v[0]|string
                         %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}
@@ -120,31 +178,32 @@
             </div>
             <div id="cInput" style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};">
                 <input type="text" id="cSearch" value="{{ valor_filtro }}" placeholder="Nome..."
-                    style="padding:8px; border-radius:4px; border:1px solid #ddd;">
+                    style="min-width: 200px;">
             </div>
-            <button class="btn" onclick="apply()">Filtrar</button>
+            <button class="btn" onclick="apply()">Pesquisar</button>
         </div>
 
         {% if proj %}
         <div class="projection-grid">
             <div class="card"
                 style="display: flex; justify-content: space-around; align-items: center; border-top: 5px solid {{ proj.cor }};">
-                <div><small>META</small>
-                    <div style="font-size:22px; font-weight:bold;">R$ {{ "%.2f"|format(proj.meta) }}</div>
+                <div><small style="color:#999; font-weight:bold;">META MÊS</small>
+                    <div style="font-size:24px; font-weight:bold;">R$ {{ "%.2f"|format(proj.meta) }}</div>
                 </div>
-                <div><small>REALIZADO</small>
-                    <div style="font-size:22px; font-weight:bold; color:#1976d2;">R$ {{ "%.2f"|format(proj.realizado) }}
+                <div><small style="color:#999; font-weight:bold;">REALIZADO (13d)</small>
+                    <div style="font-size:24px; font-weight:bold; color:#1976d2;">R$ {{ "%.2f"|format(proj.realizado) }}
                     </div>
                 </div>
-                <div><small>PROJEÇÃO</small>
-                    <div style="font-size:22px; font-weight:bold; color:{{ proj.cor }};">R$ {{
+                <div><small style="color:#999; font-weight:bold;">PROJEÇÃO (21d)</small>
+                    <div style="font-size:24px; font-weight:bold; color:{{ proj.cor }};">R$ {{
                         "%.2f"|format(proj.valor_projecao) }}</div>
                 </div>
             </div>
             <div class="card" style="text-align:center; border-top: 5px solid {{ proj.cor }};">
-                <h3 style="font-size:12px; color:#666; margin-bottom:5px;">TERMÔMETRO</h3>
+                <h3 style="font-size:11px; color:#999; margin-bottom:5px; text-transform:uppercase;">Termômetro de Meta
+                </h3>
                 <div class="termometro-wrap"><canvas id="gauge"></canvas></div>
-                <div style="font-size:20px; font-weight:bold; margin-top:-35px; color:{{ proj.cor }};">{{
+                <div style="font-size:22px; font-weight:bold; margin-top:-35px; color:{{ proj.cor }};">{{
                     "%.1f"|format(proj.atingimento_proj) }}%</div>
             </div>
         </div>
@@ -159,7 +218,7 @@
                         <th>Objetivo Mês</th>
                         <th>Venda Real</th>
                         <th>% Meta</th>
-                        <th>Status</th>
+                        <th>Atraso Real</th>
                         <th>Ação</th>
                     </tr>
                 </thead>
@@ -167,14 +226,15 @@
                     {% for c in clientes %}
                     <tr>
                         <td>{{ c[0] }}</td>
-                        <td>{{ c[1] }}</td>
+                        <td style="font-weight:600;">{{ c[1] }}</td>
                         <td style="font-weight:bold;">R$ {{ "%.2f"|format(c[11]) }}</td>
                         <td style="color:#1976d2; font-weight:bold;">R$ {{ "%.2f"|format(c[10]) }}</td>
-                        <td><span style="color: {{ '#4caf50' if c[12] >= 100 else '#ff9800' }}; font-weight:bold;">{{
+                        <td><span
+                                style="background: {{ '#4caf501a' if c[12] >= 100 else '#ff98001a' }}{% if c[12] >= 100 %}e6{% endif %}; color: {{ '#2e7d32' if c[12] >= 100 else '#e65100' }}; padding: 4px 8px; border-radius: 4px; font-weight:bold;">{{
                                 "%.1f"|format(c[12]) }}%</span></td>
-                        <td style="color: {{ '#f5576c' if c[6] > 0 else '#4caf50' }}; font-weight:bold;">{% if c[6] > 0
-                            %}{{ c[6] }} dias atraso{% else %}✓ Em Dia{% endif %}</td>
-                        <td><a href="/analise/{{ c[0] }}" class="btn" style="padding:4px 8px;">Analisar</a></td>
+                        <td style="font-weight:bold; color: {{ '#d32f2f' if c[6] > 0 else '#2e7d32' }};">{% if c[6] > 0
+                            %}⚠️ {{ c[6] }} dias{% else %}✓ Em Dia{% endif %}</td>
+                        <td><a href="/analise/{{ c[0] }}" class="btn" style="padding:6px 12px;">Analisar</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Análise Estratégica - BI Varejão</title>
+    <title>Análise Estratégica - BI Varejão Farma</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -18,20 +18,42 @@
             color: #333;
         }
 
+        /* NOVO HEADER MELHORADO (IDÊNTICO AO DASHBOARD) */
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 25px 40px;
+            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand span {
+            color: #a3dffb;
+            font-weight: 500;
+        }
+
+        .user-info {
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 18px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
         }
 
         .container {
             max-width: 1400px;
             margin: 30px auto;
-            padding: 0 20px;
+            padding: 0 25px;
         }
 
         .back-btn {
@@ -49,12 +71,13 @@
         .back-btn:hover {
             background: #764ba2;
             transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
         }
 
         .summary-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            gap: 25px;
             margin-bottom: 30px;
         }
 
@@ -78,6 +101,7 @@
             text-transform: uppercase;
             margin-bottom: 10px;
             letter-spacing: 1px;
+            font-weight: 700;
         }
 
         .card-value {
@@ -143,22 +167,34 @@
         .status-vencido {
             color: #f5576c;
             font-weight: bold;
+            background: #fff5f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .chart-container {
+            height: 350px;
+            position: relative;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>BI Varejão - Inteligência de Clientes</h1>
-        <div><span>Usuário: <strong>{{ session.get('user') }}</strong></span></div>
+        <div class="brand">
+            <h1>BI Varejão <span>Farma</span></h1>
+        </div>
+        <div class="user-info">
+            <span>Usuário: <strong>{{ session.get('user') }}</strong></span>
+        </div>
     </header>
 
     <div class="container">
         <a href="/dashboard" class="back-btn">← Voltar ao Dashboard</a>
 
         <div class="section" style="border-left: 8px solid #667eea;">
-            <h2 style="font-size: 32px; color: #444;">{{ cliente[1] }}</h2>
-            <p style="color: #888; font-weight: 600;">CÓDIGO: {{ cliente[0] }}</p>
+            <h2 style="font-size: 32px; color: #444; margin-bottom: 5px;">{{ cliente[1] }}</h2>
+            <p style="color: #888; font-weight: 600; font-size: 14px;">CÓDIGO: {{ cliente[0] }}</p>
         </div>
 
         <div class="summary-cards">
@@ -175,6 +211,8 @@
                 <div class="card-value" style="color:{% if dias_atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};">
                     {% if dias_atraso > 0 %}EM ATRASO{% else %}EM DIA{% endif %}
                 </div>
+                <p style="font-size: 13px; margin-top: 10px; color: #666;">{% if dias_atraso > 0 %}⚠ {{ dias_atraso }}
+                    dias (Via CTREC){% else %}✓ Nenhuma pendência vencida{% endif %}</p>
             </div>
         </div>
 
@@ -191,9 +229,10 @@
                 <h3>% Meta</h3>
                 {% set atingimento = (vendas_atual / objetivo * 100) if objetivo > 0 else 0 %}
                 <div class="card-value">{{ "%.1f"|format(atingimento) }}%</div>
-                <div style="width: 100%; background: #eee; height: 8px; border-radius: 4px; margin-top: 15px;">
+                <div
+                    style="width: 100%; background: #eee; height: 10px; border-radius: 5px; margin-top: 15px; overflow: hidden;">
                     <div
-                        style="width: {{ [atingimento, 100]|min }}%; background: #4caf50; height: 100%; border-radius: 4px;">
+                        style="width: {{ [atingimento, 100]|min }}%; background: #4caf50; height: 100%; border-radius: 5px;">
                     </div>
                 </div>
             </div>
@@ -221,20 +260,22 @@
                         <td>{{ t[5].strftime('%d/%m/%Y') }}</td>
                         <td>R$ {{ "%.2f"|format(t[2]) }}</td>
                         <td style="font-weight:bold;">R$ {{ "%.2f"|format(t[3]) }}</td>
-                        <td class="{% if t[6] > 0 %}status-vencido{% endif %}">{% if t[6] > 0 %}{{ t[6] }} dias{% else
-                            %}A vencer{% endif %}</td>
+                        <td><span class="{% if t[6] > 0 %}status-vencido{% endif %}">{% if t[6] > 0 %}{{ t[6] }} dias{%
+                                else %}A vencer{% endif %}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p style="color: #4caf50; font-weight: bold; padding: 10px;">✓ Sem títulos pendentes.</p>
+            <p
+                style="color: #4caf50; font-weight: bold; padding: 15px; background: #e8f5e9; border-radius: 6px; display: inline-block;">
+                ✓ Sem títulos pendentes.</p>
             {% endif %}
         </div>
 
         <div class="section">
             <h3>📈 Evolução de Vendas (2024 - 2026)</h3>
-            <div style="height: 350px;"><canvas id="vendasChart"></canvas></div>
+            <div class="chart-container"><canvas id="vendasChart"></canvas></div>
         </div>
     </div>
 
@@ -245,12 +286,16 @@
             data: {
                 labels: histData.map(m => m.mes),
                 datasets: [
-                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#ccc', borderDash: [5, 5], fill: false },
-                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#4caf50', fill: false },
-                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#1976d2', backgroundColor: 'rgba(25, 118, 210, 0.1)', borderWidth: 3, fill: true, tension: 0.3 }
+                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#ccc', borderDash: [5, 5], fill: false, pointRadius: 2 },
+                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#4caf50', fill: false, pointRadius: 3 },
+                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#1976d2', backgroundColor: 'rgba(25, 118, 210, 0.15)', borderWidth: 3, fill: true, tension: 0.3, pointRadius: 5, pointHoverRadius: 7 }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { padding: 20, font: { weight: 'bold' } } } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } }
+            }
         });
     </script>
 </body>
