@@ -156,7 +156,7 @@
 
         .chart-box {
             height: 350px;
-            padding-top: 20px;
+            padding-top: 30px;
         }
     </style>
 </head>
@@ -184,7 +184,7 @@
                 <div class="card-value">R$ {{ "%.2f"|format(saldo) }}</div>
             </div>
             <div class="card {% if dias_atraso > 0 %}danger{% else %}success{% endif %}">
-                <h3>Status de Pagamento</h3>
+                <h3>Status Pagamento</h3>
                 <div class="card-value" style="color:{% if dias_atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};">{% if
                     dias_atraso > 0 %}EM ATRASO{% else %}EM DIA{% endif %}</div>
             </div>
@@ -200,8 +200,7 @@
             </div>
             <div class="card success">
                 <h3>% Meta</h3>
-                {% set atingimento = (vendas_atual / objetivo * 100) if objetivo > 0 else 0 %}
-                <div class="card-value">{{ "%.1f"|format(atingimento) }}%</div>
+                <div class="card-value">{{ "%.1f"|format(vendas_atual / objetivo * 100 if objetivo > 0 else 0) }}%</div>
             </div>
         </div>
         <div class="section">
@@ -236,68 +235,38 @@
             </p>{% endif %}
         </div>
         <div class="section">
-            <h3>📈 Evolução Mensal (2024 - 2026)</h3>
+            <h3>📈 Evolução Mensal (Valores por Mês)</h3>
             <div class="chart-box"><canvas id="vendasChart"></canvas></div>
         </div>
     </div>
     <script>
-        // Registrar o plugin de datalabels
         Chart.register(ChartDataLabels);
-
         const histData = {{ comparativo| tojson }};
         new Chart(document.getElementById('vendasChart'), {
             type: 'line',
             data: {
                 labels: histData.map(m => m.mes),
                 datasets: [
-                    {
-                        label: '2024',
-                        data: histData.map(m => m['2024']),
-                        borderColor: '#bdc3c7',
-                        borderDash: [4, 4],
-                        fill: false,
-                        pointRadius: 4,
-                        datalabels: { align: 'top', anchor: 'end' }
-                    },
-                    {
-                        label: '2025',
-                        data: histData.map(m => m['2025']),
-                        borderColor: '#2ecc71',
-                        fill: false,
-                        pointRadius: 4,
-                        datalabels: { align: 'top', anchor: 'end' }
-                    },
-                    {
-                        label: '2026',
-                        data: histData.map(m => m['2026']),
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.05)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 6,
-                        datalabels: { align: 'top', anchor: 'end', font: { weight: 'bold' } }
-                    }
+                    { label: '2024', data: histData.map(m => m['2024']), borderColor: '#bdc3c7', borderDash: [4, 4], fill: false, pointRadius: 4 },
+                    { label: '2025', data: histData.map(m => m['2025']), borderColor: '#2ecc71', fill: false, pointRadius: 4 },
+                    { label: '2026', data: histData.map(m => m['2026']), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.05)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 5 }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
                     datalabels: {
-                        color: '#444',
-                        font: { size: 9 },
+                        align: 'top',
+                        anchor: 'end',
+                        color: '#555',
+                        font: { size: 9, weight: 'bold' },
                         formatter: function (value) {
-                            return value > 0 ? value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '';
-                        },
-                        padding: 4
+                            return value > 0 ? 'R$ ' + Math.round(value / 1000) + 'k' : '';
+                        }
                     }
                 },
-                scales: {
-                    y: { ticks: { font: { size: 9 } }, beginAtZero: true },
-                    x: { ticks: { font: { size: 9 } } }
-                }
+                scales: { y: { ticks: { font: { size: 9 } }, beginAtZero: true }, x: { ticks: { font: { size: 9 } } } }
             }
         });
     </script>

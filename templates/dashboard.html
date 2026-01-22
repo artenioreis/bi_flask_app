@@ -25,7 +25,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .brand h1 {
@@ -38,19 +37,13 @@
             color: #a3dffb;
         }
 
-        .user-info {
-            font-size: 12px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
-
         .container {
             max-width: 1400px;
             margin: 15px auto;
             padding: 0 15px;
         }
 
+        /* FILTROS */
         .filters {
             background: white;
             padding: 12px;
@@ -84,6 +77,7 @@
             outline: none;
         }
 
+        /* PROJEÇÃO E TERMÔMETRO */
         .projection-grid {
             display: grid;
             grid-template-columns: 1fr 240px;
@@ -97,6 +91,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
             border-top: 3px solid #667eea;
+            position: relative;
         }
 
         .stat-item {
@@ -127,6 +122,102 @@
             text-align: center;
         }
 
+        /* BOTÃO DE AJUDA */
+        .help-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 18px;
+            height: 18px;
+            background: #eee;
+            color: #666;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+        }
+
+        .help-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* MODAL DE EXPLICAÇÃO */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 550px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            line-height: 1.6;
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #f5576c;
+        }
+
+        .modal h2 {
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .modal h3 {
+            font-size: 14px;
+            margin-top: 15px;
+            color: #444;
+            border-left: 3px solid #667eea;
+            padding-left: 8px;
+        }
+
+        .modal p {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .color-box {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            margin-right: 5px;
+        }
+
+        /* TABELA */
         .table-card {
             background: white;
             border-radius: 8px;
@@ -194,6 +285,7 @@
         <div class="user-info">Olá, <strong>{{ session.get('user') }}</strong> | <a href="/logout"
                 style="color:inherit; text-decoration:none;">Sair</a></div>
     </header>
+
     <div class="container">
         <div class="filters">
             <div class="filter-group"><label>Tipo</label><select id="tipo" onchange="toggle()">
@@ -206,15 +298,14 @@
                 <label>Vendedor</label><select id="vSel" style="min-width: 180px;">
                     <option value="">-- Escolha --</option>{% for v in vendedores %}<option value="{{ v[0] }}" {% if
                         valor_filtro|string==v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}
-                </select>
-            </div>
+                </select></div>
             <div class="filter-group" id="cInput"
                 style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};">
                 <label>Cliente</label><input type="text" id="cSearch" value="{{ valor_filtro }}"
-                    placeholder="Pesquisar..." style="min-width: 180px;">
-            </div>
+                    placeholder="Pesquisar..." style="min-width: 180px;"></div>
             <button class="btn" onclick="apply()">Filtrar</button>
         </div>
+
         {% if proj %}
         <div class="projection-grid">
             <div class="card"
@@ -231,12 +322,14 @@
                 </div>
             </div>
             <div class="card" style="border-top-color: {{ proj.cor }};">
+                <button class="help-btn" onclick="openHelp()">?</button>
                 <div class="termometro-wrap"><canvas id="gauge"></canvas></div>
                 <div class="termometro-label" style="color:{{ proj.cor }};">{{ "%.1f"|format(proj.atingimento_proj) }}%
                 </div>
             </div>
         </div>
         {% endif %}
+
         <div class="table-card">
             <table>
                 <thead>
@@ -268,11 +361,54 @@
             </table>
         </div>
     </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Como ler o Termômetro?</h2>
+                <span class="close-modal" onclick="closeHelp()">&times;</span>
+            </div>
+            <p><strong>Abaixo de 100% (Zona de Alerta):</strong> O ritmo atual é insuficiente. O vendedor "está frio" e
+                precisa aumentar a média diária nos últimos 8 dias.</p>
+            <p><strong>Em 100% (Meta Batida):</strong> A projeção está exatamente em cima da meta. O ritmo está
+                equilibrado.</p>
+            <p><strong>Acima de 100% (Superação):</strong> O termômetro fica "quente" (verde). O vendedor irá
+                ultrapassar a meta se mantiver o ritmo.</p>
+
+            <h3>Por que ele é útil?</h3>
+            <p>Diferente do "Realizado", o termômetro é <strong>preditivo</strong>. Ele avisa hoje se você terá
+                problemas no final do mês.</p>
+            <p style="background: #f9f9f9; padding: 10px; border-radius: 5px; font-style: italic;">
+                <strong>Exemplo:</strong> Se você vendeu R$ 13 mil e a meta é R$ 20 mil, o termômetro de 80% avisa que,
+                no ritmo atual, você NÃO chegará aos R$ 20 mil.
+            </p>
+
+            <h3>Lógica de Cores:</h3>
+            <p><span class="color-box" style="background:#f5576c"></span> <strong>Vermelho:</strong> Projeção < 90%
+                    (Risco alto).</p>
+                    <p><span class="color-box" style="background:#ff9800"></span> <strong>Amarelo:</strong> Projeção
+                        entre 90% e 99.9% (Atenção).</p>
+                    <p><span class="color-box" style="background:#4caf50"></span> <strong>Verde:</strong> Projeção >=
+                        100% (Meta Batida).</p>
+        </div>
+    </div>
+
     <script>
         function toggle() { const t = document.getElementById('tipo').value; document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none'; document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none'; }
         function apply() { const t = document.getElementById('tipo').value; let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value; window.location.href = `/dashboard?tipo=${t}&valor=${v}`; }
+
+        // Modal functions
+        function openHelp() { document.getElementById('helpModal').style.display = 'block'; }
+        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+        window.onclick = function (event) { if (event.target == document.getElementById('helpModal')) closeHelp(); }
+
         {% if proj %}
-        new Chart(document.getElementById('gauge').getContext('2d'), { type: 'doughnut', data: { datasets: [{ data: [{{ proj.atingimento_proj }}, {{ [0, 100 - proj.atingimento_proj]| max }}], backgroundColor: ['{{ proj.cor }}', '#f0f0f0'], circumference: 180, rotation: 270, cutout: '85%', borderWidth: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
+        new Chart(document.getElementById('gauge').getContext('2d'), {
+            type: 'doughnut',
+            data: { datasets: [{ data: [{{ proj.atingimento_proj }}, {{ [0, 100 - proj.atingimento_proj]| max }}], backgroundColor: ['{{ proj.cor }}', '#f0f0f0'], circumference: 180, rotation: 270, cutout: '85%', borderWidth: 0
+        }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
+        });
         {% endif %}
     </script>
 </body>
