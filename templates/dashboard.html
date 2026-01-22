@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard BI - Janeiro 2026</title>
+    <title>Varejão Farma- Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -13,7 +13,7 @@
         }
 
         header {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             padding: 15px 30px;
             display: flex;
@@ -98,7 +98,7 @@
 
 <body>
     <header>
-        <h1>BI Varejão</h1>
+        <h1>BI Varejão Farma</h1>
         <div><strong>{{ session.get('user') }}</strong> | <a href="/logout" style="color:white;">Sair</a></div>
     </header>
     <div class="container">
@@ -142,7 +142,7 @@
                 </div>
             </div>
             <div class="card" style="text-align:center; border-top: 5px solid {{ proj.cor }};">
-                <h3 style="font-size:12px; color:#666; margin-bottom:5px;">TERMÔMETRO DE META</h3>
+                <h3 style="font-size:12px; color:#666; margin-bottom:5px;">TERMÔMETRO</h3>
                 <div class="termometro-wrap"><canvas id="gauge"></canvas></div>
                 <div style="font-size:20px; font-weight:bold; margin-top:-35px; color:{{ proj.cor }};">{{
                     "%.1f"|format(proj.atingimento_proj) }}%</div>
@@ -159,7 +159,7 @@
                         <th>Objetivo Mês</th>
                         <th>Venda Real</th>
                         <th>% Meta</th>
-                        <th>Atraso</th>
+                        <th>Status</th>
                         <th>Ação</th>
                     </tr>
                 </thead>
@@ -173,7 +173,7 @@
                         <td><span style="color: {{ '#4caf50' if c[12] >= 100 else '#ff9800' }}; font-weight:bold;">{{
                                 "%.1f"|format(c[12]) }}%</span></td>
                         <td style="color: {{ '#f5576c' if c[6] > 0 else '#4caf50' }}; font-weight:bold;">{% if c[6] > 0
-                            %}{{ c[6] }} dias{% else %}✓ Em Dia{% endif %}</td>
+                            %}{{ c[6] }} dias atraso{% else %}✓ Em Dia{% endif %}</td>
                         <td><a href="/analise/{{ c[0] }}" class="btn" style="padding:4px 8px;">Analisar</a></td>
                     </tr>
                     {% endfor %}

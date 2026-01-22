@@ -8,29 +8,23 @@ import pandas as pd
 from datetime import datetime
 from functools import wraps
 
-# Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'varejao_bi_master_2026'
+app.config['SECRET_KEY'] = 'varejao_bi_2026_financeiro_detalhado'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Caminho da planilha Excel de Objetivos
 EXCEL_PATH = r'C:\Projeto_Varejao\bi_flask_app\database\Vlr_ObjetivoClie.xlsx'
-
-# ============================================
-# UTILITÁRIOS
-# ============================================
 
 def execute_query(query):
     try:
         config_path = os.path.join(app.root_path, 'database', 'config.json')
         with open(config_path, 'r', encoding='utf-8') as f:
             cfg = json.load(f)
-        conn_str = (f"Driver={{ODBC Driver 17 for SQL Server}};Server={cfg.get('server')};"
-                    f"Database={cfg.get('database')};UID={cfg.get('username')};PWD={cfg.get('password')};")
+        conn_str = (f"Driver={{ODBC Driver 17 for SQL Server}};Server={cfg['server']};"
+                    f"Database={cfg['database']};UID={cfg['username']};PWD={cfg['password']};")
         conn = pyodbc.connect(conn_str, timeout=15)
         cursor = conn.cursor()
         cursor.execute(query)
@@ -38,7 +32,7 @@ def execute_query(query):
         conn.close()
         return res
     except Exception as e:
-        logger.error(f"❌ Erro SQL: {e}")
+        logger.error(f"Erro SQL: {e}")
         return []
 
 def get_objetivos_excel():
@@ -56,10 +50,6 @@ def login_required(f):
         if 'user' not in session: return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-
-# ============================================
-# ROTAS
-# ============================================
 
 @app.route('/')
 def index():
@@ -85,17 +75,20 @@ def dashboard():
     valor = request.args.get('valor', '').strip()
     vendedores = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado IN ('0', 0) ORDER BY Nome_guerra")
 
-    # Calendário Janeiro/2026
     cal = {'uteis': 21, 'trabalhados': 13, 'restantes': 8}
     proj_vendedor = None
 
     if not valor and filtro != 'todos':
         return render_template('dashboard.html', clientes=[], vendedores=vendedores, filtro_ativo=filtro, valor_filtro='')
 
-    # Query Principal: Vendas do Mês Atual
+    # Query Dashboard com a sua lógica da CTREC
     query_clie = """
     SELECT cl.Codigo, cl.Razao_Social, CASE WHEN cl.Bloqueado = '0' THEN 'Não' ELSE 'Sim' END,
-    ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 0, ISNULL(cl.Maior_Atraso, 0), 
+    ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 0, 
+    ISNULL((SELECT MAX(DATEDIFF(DAY, DATEADD(DAY, ISNULL(Qtd_DiaExtVct, 0), Dat_Vencimento), GETDATE()))
+            FROM CTREC WITH (NOLOCK)
+            WHERE Cod_Cliente = cl.Codigo AND Cod_Estabe = 0 AND Vlr_Saldo > 0 
+            AND Status IN ('A', 'P') AND Dat_Vencimento < GETDATE()), 0) AS Atraso_Real,
     cl.Data_UltimaFatura, ISNULL(ve.Nome_guerra, 'N/A'), 0,
     (SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = cl.Codigo AND Status = 'F' AND MONTH(Dat_Emissao) = 1 AND YEAR(Dat_Emissao) = 2026)
     FROM clien cl
@@ -106,26 +99,12 @@ def dashboard():
     if filtro == 'vendedor' and valor:
         cod_v = int(valor)
         query_clie += f" AND en.Cod_Vendedor = {cod_v}"
-        
-        # Meta do Vendedor (VEOBJ)
-        res_meta = execute_query(f"SELECT Isnull(Vlr_Cota, 0) FROM VEOBJ WHERE Cod_Vendedor = {cod_v} AND Ano_Ref = 2026 AND Mes_Ref = 1")
-        meta = float(res_meta[0][0]) if res_meta else 0.0
-        
-        # Realizado do Vendedor
+        res_m = execute_query(f"SELECT Isnull(Vlr_Cota, 0) FROM VEOBJ WHERE Cod_Vendedor = {cod_v} AND Ano_Ref = 2026 AND Mes_Ref = 1")
+        meta = float(res_m[0][0]) if res_m else 0.0
         realizado = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Vendedor = {cod_v} AND Status = 'F' AND MONTH(Dat_Emissao) = 1 AND YEAR(Dat_Emissao) = 2026")[0][0])
-        
-        # Cálculos de Projeção
-        valor_proj = (realizado / cal['trabalhados']) * cal['uteis'] if cal['trabalhados'] > 0 else 0
-        ating_proj = (valor_proj / meta * 100) if meta > 0 else 0
-        
-        # Cor dinâmica: Vermelho < 90, Amarelo < 100, Verde >= 100
-        cor = "#f5576c" if ating_proj < 90 else "#ff9800" if ating_proj < 100 else "#4caf50"
-        
-        proj_vendedor = {
-            'meta': meta, 'realizado': realizado, 'valor_projecao': valor_proj,
-            'atingimento': (realizado/meta*100 if meta > 0 else 0),
-            'atingimento_proj': ating_proj, 'cor': cor, 'dias': cal
-        }
+        v_proj = (realizado / cal['trabalhados']) * cal['uteis'] if cal['trabalhados'] > 0 else 0
+        cor = "#f5576c" if (v_proj/meta*100 if meta > 0 else 0) < 90 else "#ff9800" if (v_proj/meta*100 if meta > 0 else 0) < 100 else "#4caf50"
+        proj_vendedor = {'meta': meta, 'realizado': realizado, 'valor_projecao': v_proj, 'atingimento_proj': (v_proj/meta*100 if meta > 0 else 0), 'cor': cor, 'dias': cal}
     elif filtro == 'cliente' and valor:
         query_clie += f" AND (cl.Codigo LIKE '%{valor}%' OR cl.Razao_Social LIKE '%{valor}%')"
 
@@ -134,9 +113,9 @@ def dashboard():
     clientes_finais = []
     for r in res_db:
         c = list(r)
-        if float(c[4]) <= 0: c[6] = 0 # Zera atraso se débito for 0
-        meta_c = obj_excel.get(c[0], 0)
-        c.extend([meta_c, (float(c[10])/meta_c*100 if meta_c > 0 else 0)])
+        if float(c[4]) <= 0: c[6] = 0
+        m_c = obj_excel.get(c[0], 0)
+        c.extend([m_c, (float(c[10])/m_c*100 if m_c > 0 else 0)])
         clientes_finais.append(c)
 
     return render_template('dashboard.html', clientes=clientes_finais, vendedores=vendedores, filtro_ativo=filtro, valor_filtro=valor, proj=proj_vendedor)
@@ -144,20 +123,47 @@ def dashboard():
 @app.route('/analise/<int:cliente_id>')
 @login_required
 def analise_cliente(cliente_id):
-    res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0), 0, ISNULL(Maior_Atraso, 0) FROM clien WHERE Codigo = {cliente_id}")
+    # 1. Dados Básicos do Cliente
+    res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0), 0, 0 FROM clien WHERE Codigo = {cliente_id}")
     if not res: return redirect(url_for('dashboard'))
     cliente = res[0]
-    dias_atraso = int(cliente[5]) if float(cliente[3]) > 0 else 0
+
+    # 2. Buscar Títulos em Aberto (Sua consulta da CTREC melhorada)
+    query_titulos = f"""
+    SELECT 
+        Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento,
+        DATEDIFF(DAY, DATEADD(DAY, ISNULL(Qtd_DiaExtVct, 0), Dat_Vencimento), GETDATE()) AS DiasAtraso
+    FROM CTREC 
+    WHERE Cod_Cliente = {cliente_id} AND Cod_Estabe = 0 AND Vlr_Saldo > 0 AND Status IN ('A', 'P')
+    ORDER BY Dat_Vencimento ASC
+    """
+    titulos = execute_query(query_titulos)
+
+    # Calcular o maior atraso para o card de status
+    maior_atraso = 0
+    if titulos:
+        # Pega o maior valor de DiasAtraso da lista
+        lista_atrasos = [int(t[6]) for t in titulos if int(t[6]) > 0]
+        if lista_atrasos:
+            maior_atraso = max(lista_atrasos)
+
+    # 3. Resto das métricas (Excel e Gráfico)
     objetivo = get_objetivos_excel().get(cliente_id, 0)
     vendas_mes = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND MONTH(Dat_Emissao) = 1 AND YEAR(Dat_Emissao) = 2026")[0][0])
-    
-    # Histórico 3 Anos
     raw_hist = execute_query(f"SELECT MONTH(Dat_Emissao), YEAR(Dat_Emissao), SUM(Vlr_TotalNota) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) GROUP BY MONTH(Dat_Emissao), YEAR(Dat_Emissao) ORDER BY 1, 2")
     meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ']
     comp = {i: {'mes': meses[i-1], '2024': 0, '2025': 0, '2026': 0} for i in range(1, 13)}
     for r in raw_hist: comp[r[0]][str(r[1])] = float(r[2])
-    
-    return render_template('analise_cliente.html', cliente=cliente, comparativo=list(comp.values()), limite_credito=float(cliente[2]), saldo=float(cliente[2]-cliente[3]), dias_atraso=dias_atraso, objetivo=objetivo, vendas_atual=vendas_mes)
+
+    return render_template('analise_cliente.html', 
+                         cliente=cliente, 
+                         comparativo=list(comp.values()), 
+                         limite_credito=float(cliente[2]), 
+                         saldo=float(cliente[2]-cliente[3]), 
+                         dias_atraso=maior_atraso, 
+                         objetivo=objetivo, 
+                         vendas_atual=vendas_mes,
+                         titulos=titulos)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
