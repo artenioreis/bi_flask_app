@@ -18,7 +18,7 @@
             color: #333;
         }
 
-        /* Cabeçalho Original */
+        /* Cabeçalho Original Restaurado */
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -120,6 +120,13 @@
             border-bottom: 2px solid #eee;
             padding-bottom: 15px;
         }
+
+        /* Ajuste de altura do gráfico conforme solicitado anteriormente */
+        .chart-container {
+            height: 350px;
+            /* Reduzido de 450px para 350px */
+            position: relative;
+        }
     </style>
 </head>
 
@@ -166,7 +173,7 @@
 
         <div class="summary-cards">
             <div class="card meta">
-                <h3>Objetivo Mensal</h3>
+                <h3>Objetivo Mensal (Excel)</h3>
                 <div class="card-value">R$ {{ "%.2f"|format(objetivo) }}</div>
             </div>
             <div class="card info">
@@ -187,7 +194,7 @@
 
         <div class="section">
             <h3>📈 Evolução Mensal de Vendas (2024 - 2026)</h3>
-            <div style="height: 450px;">
+            <div class="chart-container">
                 <canvas id="vendasChart"></canvas>
             </div>
         </div>
