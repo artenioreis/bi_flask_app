@@ -5,26 +5,23 @@
     <title>BI Varejão Farma - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Estilos mantidos para harmonia visual */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; color: #333; }
-        
-        /* HEADER */
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
         header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .brand h1 { font-size: 20px; font-weight: 800; }
-        
         .container { max-width: 1400px; margin: 15px auto; padding: 0 15px; }
         
-        /* FILTROS */
+        /* FILTROS HARMONIZADOS */
         .filters { background: white; padding: 12px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 15px; }
         .filter-group { display: flex; flex-direction: column; gap: 3px; }
         .filter-group label { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; }
         select, input { padding: 6px 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; outline: none; }
         
-        /* GRIDS E CARDS */
+        /* CARDS E GRIDS */
         .projection-grid { display: grid; grid-template-columns: 1fr 240px; gap: 15px; margin-bottom: 15px; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border-top: 3px solid #667eea; position: relative; }
         .card-header-title { font-size: 10px; font-weight: bold; color: #667eea; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
-        
         .stat-item { text-align: center; }
         .stat-item small { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; }
         .stat-value { font-size: 18px; font-weight: 700; }
@@ -32,25 +29,8 @@
         /* TERMÔMETRO */
         .termometro-wrap { height: 100px; position: relative; }
         .termometro-label { font-size: 16px; font-weight: 800; margin-top: -18px; text-align: center; }
-        
-        /* BOTÃO DE AJUDA */
-        .help-btn { 
-            position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; 
-            background: #eee; color: #666; border-radius: 50%; font-size: 11px; 
-            font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; border: none; z-index: 10; transition: 0.2s;
-        }
+        .help-btn { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; background: #eee; color: #666; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; transition: 0.2s; }
         .help-btn:hover { background: #667eea; color: white; }
-
-        /* MODAL DE EXPLICAÇÃO */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
-        .modal-content { background: white; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); line-height: 1.6; max-height: 85vh; overflow-y: auto; }
-        .modal-header { border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .close-modal { font-size: 24px; cursor: pointer; color: #999; }
-        .modal h2 { font-size: 18px; color: #667eea; }
-        .modal h3 { font-size: 15px; margin-top: 20px; color: #333; border-left: 4px solid #667eea; padding-left: 10px; }
-        .modal p { font-size: 13px; color: #555; margin-bottom: 10px; }
-        .color-tag { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
 
         /* TABELA */
         .table-card { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); overflow: hidden; }
@@ -61,6 +41,10 @@
         .vencido { background: #fff5f6; color: #f5576c; }
         .em-dia { background: #e8f5e9; color: #2e7d32; }
         .btn { background: #667eea; color: white; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+        .modal-content { background: white; margin: 10% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 550px; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -71,16 +55,38 @@
 
     <div class="container">
         <div class="filters">
-            <div class="filter-group"><label>Filtro</label><select id="tipo" onchange="toggle()"><option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral (Empresa)</option><option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option><option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option></select></div>
-            <div class="filter-group" id="vInput" style="display: none;"><label>Vendedor</label><select id="vSel" style="min-width: 180px;"><option value="">-- Selecione --</option>{% for v in vendedores %}<option value="{{ v[0] }}">{{ v[1] }}</option>{% endfor %}</select></div>
-            <div class="filter-group" id="cInput" style="display: none;"><label>Cliente</label><input type="text" id="cSearch" placeholder="Pesquisar..."></div>
+            <div class="filter-group">
+                <label>Filtro</label>
+                <select id="tipo" onchange="toggle()">
+                    <option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral (Empresa)</option>
+                    <option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option>
+                    <option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option>
+                </select>
+            </div>
+            
+            <div class="filter-group" id="vInput" style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};">
+                <label>Vendedor</label>
+                <select id="vSel" style="min-width: 180px;">
+                    <option value="">-- Selecione --</option>
+                    {% for v in vendedores %}
+                    <option value="{{ v[0] }}" {% if valor_filtro|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group" id="cInput" style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};">
+                <label>Cliente</label>
+                <input type="text" id="cSearch" value="{{ valor_filtro if filtro_ativo == 'cliente' else '' }}" placeholder="Pesquisar...">
+            </div>
+            
             <button class="btn" onclick="apply()">Filtrar</button>
+            <a href="/dashboard" style="font-size: 11px; color: #999; text-decoration: none; margin-left: 5px;">Limpar</a>
         </div>
 
         <div class="projection-grid">
             <div class="card" style="border-top-color: {{ proj.cor }};">
                 <div class="card-header-title">{{ proj.titulo }}</div>
-                <div style="display: flex; justify-content: space-around;">
+                <div style="display: flex; justify-content: space-around; align-items: center;">
                     <div class="stat-item"><small>Meta Total</small><div class="stat-value">R$ {{ "%.2f"|format(proj.meta) }}</div></div>
                     <div class="stat-item"><small>Realizado</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(proj.realizado) }}</div></div>
                     <div class="stat-item"><small>Projeção Final</small><div class="stat-value" style="color:{{ proj.cor }};">R$ {{ "%.2f"|format(proj.valor_projecao) }}</div></div>
@@ -97,7 +103,7 @@
         <div class="projection-grid">
             <div class="card" style="border-top-color: {{ clie_proj.cor }};">
                 <div class="card-header-title">Objetivos Somados (Base Clientes Excel)</div>
-                <div style="display: flex; justify-content: space-around;">
+                <div style="display: flex; justify-content: space-around; align-items: center;">
                     <div class="stat-item"><small>Meta Clientes</small><div class="stat-value">R$ {{ "%.2f"|format(clie_proj.meta) }}</div></div>
                     <div class="stat-item"><small>Venda Real</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(clie_proj.realizado) }}</div></div>
                     <div class="stat-item"><small>Projeção Final</small><div class="stat-value" style="color:{{ clie_proj.cor }};">R$ {{ "%.2f"|format(clie_proj.valor_projecao) }}</div></div>
@@ -121,7 +127,7 @@
                         <td>R$ {{ "%.2f"|format(c[11]) }}</td><td style="color:#1976d2;">R$ {{ "%.2f"|format(c[10]) }}</td>
                         <td style="font-weight:800; color: {{ '#2e7d32' if c[12] >= 100 else '#e65100' }};">{{ "%.1f"|format(c[12]) }}%</td>
                         <td><span class="status-tag {% if c[6] > 0 %}vencido{% else %}em-dia{% endif %}">{% if c[6] > 0 %}⚠️ {{ c[6] }} DIAS{% else %}✓ EM DIA{% endif %}</span></td>
-                        <td><a href="/analise/{{ c[0] }}" class="btn">Analisar</a></td>
+                        <td><a href="/analise/{{ c[0] }}" class="btn">Ver</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -129,38 +135,21 @@
         </div>
     </div>
 
-    <div id="helpModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Como ler o Termômetro?</h2>
-                <span class="close-modal" onclick="closeHelp()">&times;</span>
-            </div>
-            
-            <p><strong>Abaixo de 100% (Zona de Alerta):</strong> Se o ponteiro estiver antes do final, o ritmo atual é insuficiente. O vendedor "está frio" e precisa aumentar a média diária nos últimos 8 dias para não fechar o mês no negativo.</p>
-            <p><strong>Em 100% (Meta Batida):</strong> A projeção está exatamente em cima da meta. O ritmo está equilibrado.</p>
-            <p><strong>Acima de 100% (Superação):</strong> O termômetro fica "quente" (verde). Se o ritmo for mantido, o vendedor irá ultrapassar a meta estipulada.</p>
-            
-            <h3>Por que ele é útil?</h3>
-            <p>Diferente de um gráfico que mostra apenas o "Realizado", o termômetro é <strong>preditivo</strong>. Ele avisa sobre um problema antes do mês acabar.</p>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea;">
-                <p><strong>Exemplo Prático:</strong> Se um vendedor realizou R$ 13.000,00, isso parece bom. Mas se o Termômetro mostra <strong>80% de tendência</strong>, ele avisa hoje (dia 26) que ele não chegará nos 20 mil da meta se não mudar a estratégia agora.</p>
-            </div>
-
-            <h3>Lógica de cores no Termômetro e nos Cards:</h3>
-            <p><span class="color-tag" style="background:#f5576c"></span> <strong>Vermelho:</strong> Projeção abaixo de 90% da meta (Risco alto).</p>
-            <p><span class="color-tag" style="background:#ff9800"></span> <strong>Amarelo:</strong> Projeção entre 90% e 99.9% (Perto da meta).</p>
-            <p><span class="color-tag" style="background:#4caf50"></span> <strong>Verde:</strong> Projeção acima de 100% (Meta batida).</p>
-        </div>
-    </div>
+    <div id="helpModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;"><h3>Como ler o Termômetro?</h3><span style="cursor:pointer" onclick="closeHelp()">×</span></div><p style="font-size:13px; line-height:1.6;">O termômetro é <strong>preditivo</strong>. Ele avisa se o ritmo de vendas atual é suficiente para atingir a meta no final do mês.<br><br><strong>Cores:</strong><br>● Vermelho: Risco alto (<90%)<br>● Amarelo: Atenção (90-99%)<br>● Verde: Meta Batida (>=100%)</p></div></div>
 
     <script>
-        function toggle(){ const t = document.getElementById('tipo').value; document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none'; document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none'; }
-        function apply(){ const t = document.getElementById('tipo').value; let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value; window.location.href = `/dashboard?tipo=${t}&valor=${v}`; }
-        
+        function toggle(){
+            const t = document.getElementById('tipo').value;
+            document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none';
+            document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none';
+        }
+        function apply(){
+            const t = document.getElementById('tipo').value;
+            let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value;
+            window.location.href = `/dashboard?tipo=${t}&valor=${v}`;
+        }
         function openHelp() { document.getElementById('helpModal').style.display = 'block'; }
         function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
-        window.onclick = function(event) { if (event.target == document.getElementById('helpModal')) closeHelp(); }
 
         // Gráfico Empresa
         new Chart(document.getElementById('gaugeEmpresa').getContext('2d'), { 
