@@ -5,34 +5,27 @@
     <title>BI Varejão Farma - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Estilos mantidos para harmonia visual */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
         header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .brand h1 { font-size: 20px; font-weight: 800; }
         .container { max-width: 1400px; margin: 15px auto; padding: 0 15px; }
         
-        /* FILTROS HARMONIZADOS */
         .filters { background: white; padding: 12px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 15px; }
-        .filter-group { display: flex; flex-direction: column; gap: 3px; }
-        .filter-group label { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; }
+        .filter-group label { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; display: block; margin-bottom: 3px; }
         select, input { padding: 6px 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; outline: none; }
         
-        /* CARDS E GRIDS */
         .projection-grid { display: grid; grid-template-columns: 1fr 240px; gap: 15px; margin-bottom: 15px; }
+        .summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border-top: 3px solid #667eea; position: relative; }
         .card-header-title { font-size: 10px; font-weight: bold; color: #667eea; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
-        .stat-item { text-align: center; }
-        .stat-item small { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; }
         .stat-value { font-size: 18px; font-weight: 700; }
         
-        /* TERMÔMETRO */
         .termometro-wrap { height: 100px; position: relative; }
         .termometro-label { font-size: 16px; font-weight: 800; margin-top: -18px; text-align: center; }
-        .help-btn { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; background: #eee; color: #666; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; transition: 0.2s; }
-        .help-btn:hover { background: #667eea; color: white; }
+        .help-btn { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; background: #eee; color: #666; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; }
 
-        /* TABELA */
         .table-card { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th { background: #f8f9fa; color: #667eea; padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; border-bottom: 2px solid #667eea; }
@@ -42,128 +35,52 @@
         .em-dia { background: #e8f5e9; color: #2e7d32; }
         .btn { background: #667eea; color: white; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
 
-        /* MODAL */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
-        .modal-content { background: white; margin: 10% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 550px; line-height: 1.6; }
+        .modal-content { background: white; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
-    <header>
-        <div class="brand">BI Varejão <span>Farma</span></div>
-        <div style="font-size: 12px;">Olá, <strong>{{ session.get('user') }}</strong> | <a href="/logout" style="color:white; text-decoration:none;">Sair</a></div>
-    </header>
-
+    <header><div class="brand">BI Varejão <span>Farma</span></div><div style="font-size: 12px;">Olá, <strong>{{ session.get('user') }}</strong> | <a href="/logout" style="color:white;">Sair</a></div></header>
     <div class="container">
         <div class="filters">
-            <div class="filter-group">
-                <label>Filtro</label>
-                <select id="tipo" onchange="toggle()">
-                    <option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral (Empresa)</option>
-                    <option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option>
-                    <option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option>
-                </select>
-            </div>
-            
-            <div class="filter-group" id="vInput" style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};">
-                <label>Vendedor</label>
-                <select id="vSel" style="min-width: 180px;">
-                    <option value="">-- Selecione --</option>
-                    {% for v in vendedores %}
-                    <option value="{{ v[0] }}" {% if valor_filtro|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="filter-group" id="cInput" style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};">
-                <label>Cliente</label>
-                <input type="text" id="cSearch" value="{{ valor_filtro if filtro_ativo == 'cliente' else '' }}" placeholder="Pesquisar...">
-            </div>
-            
+            <div class="filter-group"><label>Tipo</label><select id="tipo" onchange="toggle()"><option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral (Empresa)</option><option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option><option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option></select></div>
+            <div class="filter-group" id="vInput" style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};"><label>Vendedor</label><select id="vSel" style="min-width: 180px;"><option value="">-- Escolha --</option>{% for v in vendedores %}<option value="{{ v[0] }}" {% if valor_filtro|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}</select></div>
+            <div class="filter-group" id="cInput" style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};"><label>Cliente</label><input type="text" id="cSearch" value="{{ valor_filtro if filtro_ativo == 'cliente' else '' }}" placeholder="Pesquisar..."></div>
             <button class="btn" onclick="apply()">Filtrar</button>
-            <a href="/dashboard" style="font-size: 11px; color: #999; text-decoration: none; margin-left: 5px;">Limpar</a>
         </div>
 
         <div class="projection-grid">
-            <div class="card" style="border-top-color: {{ proj.cor }};">
-                <div class="card-header-title">{{ proj.titulo }}</div>
-                <div style="display: flex; justify-content: space-around; align-items: center;">
-                    <div class="stat-item"><small>Meta Total</small><div class="stat-value">R$ {{ "%.2f"|format(proj.meta) }}</div></div>
-                    <div class="stat-item"><small>Realizado</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(proj.realizado) }}</div></div>
-                    <div class="stat-item"><small>Projeção Final</small><div class="stat-value" style="color:{{ proj.cor }};">R$ {{ "%.2f"|format(proj.valor_projecao) }}</div></div>
-                </div>
-            </div>
-            <div class="card" style="border-top-color: {{ proj.cor }};">
-                <div class="card-header-title" style="text-align: center;">Termômetro Empresa</div>
-                <button class="help-btn" onclick="openHelp()">?</button>
-                <div class="termometro-wrap"><canvas id="gaugeEmpresa"></canvas></div>
-                <div class="termometro-label" style="color:{{ proj.cor }};">{{ "%.1f"|format(proj.atingimento_proj) }}%</div>
-            </div>
+            <div class="card" style="border-top-color: {{ proj.cor }};"><div class="card-header-title">{{ proj.titulo }}</div><div style="display: flex; justify-content: space-around;"><div class="stat-item"><small>Meta Total</small><div class="stat-value">R$ {{ "%.2f"|format(proj.meta) }}</div></div><div class="stat-item"><small>Realizado</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(proj.realizado) }}</div></div><div class="stat-item"><small>Projeção</small><div class="stat-value" style="color:{{ proj.cor }};">R$ {{ "%.2f"|format(proj.valor_projecao) }}</div></div></div></div>
+            <div class="card" style="border-top-color: {{ proj.cor }};"><div class="card-header-title" style="text-align: center;">Termômetro Empresa</div><button class="help-btn" onclick="openHelp()">?</button><div class="termometro-wrap"><canvas id="gaugeEmpresa"></canvas></div><div class="termometro-label" style="color:{{ proj.cor }};">{{ "%.1f"|format(proj.atingimento_proj) }}%</div></div>
         </div>
 
         <div class="projection-grid">
-            <div class="card" style="border-top-color: {{ clie_proj.cor }};">
-                <div class="card-header-title">Objetivos Somados (Base Clientes Excel)</div>
-                <div style="display: flex; justify-content: space-around; align-items: center;">
-                    <div class="stat-item"><small>Meta Clientes</small><div class="stat-value">R$ {{ "%.2f"|format(clie_proj.meta) }}</div></div>
-                    <div class="stat-item"><small>Venda Real</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(clie_proj.realizado) }}</div></div>
-                    <div class="stat-item"><small>Projeção Final</small><div class="stat-value" style="color:{{ clie_proj.cor }};">R$ {{ "%.2f"|format(clie_proj.valor_projecao) }}</div></div>
-                </div>
-            </div>
-            <div class="card" style="border-top-color: {{ clie_proj.cor }};">
-                <div class="card-header-title" style="text-align: center;">Termômetro Clientes</div>
-                <button class="help-btn" onclick="openHelp()">?</button>
-                <div class="termometro-wrap"><canvas id="gaugeClientes"></canvas></div>
-                <div class="termometro-label" style="color:{{ clie_proj.cor }};">{{ "%.1f"|format(clie_proj.atingimento_proj) }}%</div>
-            </div>
+            <div class="card" style="border-top-color: {{ clie_proj.cor }};"><div class="card-header-title">Base Objetivos Clientes (Excel)</div><div style="display: flex; justify-content: space-around;"><div class="stat-item"><small>Meta Clientes</small><div class="stat-value">R$ {{ "%.2f"|format(clie_proj.meta) }}</div></div><div class="stat-item"><small>Venda Real</small><div class="stat-value" style="color:#1976d2;">R$ {{ "%.2f"|format(clie_proj.realizado) }}</div></div><div class="stat-item"><small>Projeção</small><div class="stat-value" style="color:{{ clie_proj.cor }};">R$ {{ "%.2f"|format(clie_proj.valor_projecao) }}</div></div></div></div>
+            <div class="card" style="border-top-color: {{ clie_proj.cor }};"><div class="card-header-title" style="text-align: center;">Termômetro Clientes</div><div class="termometro-wrap"><canvas id="gaugeClientes"></canvas></div><div class="termometro-label" style="color:{{ clie_proj.cor }};">{{ "%.1f"|format(clie_proj.atingimento_proj) }}%</div></div>
+        </div>
+
+        <div class="summary-row">
+            <div class="card" style="border-top:none; border-left:4px solid #1976d2;"><div class="card-header-title">Total Limite</div><div class="stat-value">R$ {{ "%.2f"|format(geral_clie.limite) }}</div></div>
+            <div class="card" style="border-top:none; border-left:4px solid #f5576c;"><div class="card-header-title">Total Débito</div><div class="stat-value">R$ {{ "%.2f"|format(geral_clie.debito) }}</div></div>
+            <div class="card" style="border-top:none; border-left:4px solid {% if geral_clie.atraso > 0 %}#f5576c{% else %}#4caf50{% endif %};"><div class="card-header-title">Clientes em Atraso</div><div class="stat-value">{{ geral_clie.atraso }}</div></div>
         </div>
 
         <div class="table-card">
             <table>
                 <thead><tr><th>Cód</th><th>Razão Social</th><th>Objetivo</th><th>Venda Real</th><th>% Meta</th><th>Situação</th><th>Ação</th></tr></thead>
-                <tbody>
-                    {% for c in clientes %}
-                    <tr>
-                        <td>{{ c[0] }}</td><td>{{ c[1] }}</td>
-                        <td>R$ {{ "%.2f"|format(c[11]) }}</td><td style="color:#1976d2;">R$ {{ "%.2f"|format(c[10]) }}</td>
-                        <td style="font-weight:800; color: {{ '#2e7d32' if c[12] >= 100 else '#e65100' }};">{{ "%.1f"|format(c[12]) }}%</td>
-                        <td><span class="status-tag {% if c[6] > 0 %}vencido{% else %}em-dia{% endif %}">{% if c[6] > 0 %}⚠️ {{ c[6] }} DIAS{% else %}✓ EM DIA{% endif %}</span></td>
-                        <td><a href="/analise/{{ c[0] }}" class="btn">Ver</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                <tbody>{% for c in clientes %}<tr><td>{{ c[0] }}</td><td style="font-weight:600;">{{ c[1] }}</td><td>R$ {{ "%.2f"|format(c[11]) }}</td><td style="color:#1976d2;">R$ {{ "%.2f"|format(c[10]) }}</td><td style="font-weight:800; color: {{ '#2e7d32' if c[12] >= 100 else '#e65100' }};">{{ "%.1f"|format(c[12]) }}%</td><td><span class="status-tag {% if c[6] > 0 %}vencido{% else %}em-dia{% endif %}">{% if c[6] > 0 %}⚠️ {{ c[6] }} DIAS{% else %}✓ EM DIA{% endif %}</span></td><td><a href="/analise/{{ c[0] }}" class="btn">Ver</a></td></tr>{% endfor %}</tbody>
             </table>
         </div>
     </div>
-
-    <div id="helpModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;"><h3>Como ler o Termômetro?</h3><span style="cursor:pointer" onclick="closeHelp()">×</span></div><p style="font-size:13px; line-height:1.6;">O termômetro é <strong>preditivo</strong>. Ele avisa se o ritmo de vendas atual é suficiente para atingir a meta no final do mês.<br><br><strong>Cores:</strong><br>● Vermelho: Risco alto (<90%)<br>● Amarelo: Atenção (90-99%)<br>● Verde: Meta Batida (>=100%)</p></div></div>
-
+    <div id="helpModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;"><h3>Como ler o Termômetro?</h3><span style="cursor:pointer" onclick="closeHelp()">×</span></div><p style="font-size:13px; line-height:1.6;">O termômetro é <strong>preditivo</strong>. Ele avisa se o ritmo atual é suficiente para bater a meta no dia 31.<br><br>● <strong>Vermelho</strong>: Abaixo de 90%<br>● <strong>Amarelo</strong>: 90% a 99%<br>● <strong>Verde</strong>: Meta Batida (>=100%)</p></div></div>
     <script>
-        function toggle(){
-            const t = document.getElementById('tipo').value;
-            document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none';
-            document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none';
-        }
-        function apply(){
-            const t = document.getElementById('tipo').value;
-            let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value;
-            window.location.href = `/dashboard?tipo=${t}&valor=${v}`;
-        }
+        function toggle(){ const t = document.getElementById('tipo').value; document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none'; document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none'; }
+        function apply(){ const t = document.getElementById('tipo').value; let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value; window.location.href = `/dashboard?tipo=${t}&valor=${v}`; }
         function openHelp() { document.getElementById('helpModal').style.display = 'block'; }
         function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
-
-        // Gráfico Empresa
-        new Chart(document.getElementById('gaugeEmpresa').getContext('2d'), { 
-            type: 'doughnut', 
-            data: { datasets: [{ data: [Math.min({{ proj.atingimento_proj }}, 100), Math.max(0, 100 - {{ proj.atingimento_proj }})], backgroundColor: ['{{ proj.cor }}', '#f0f0f0'], circumference: 180, rotation: 270, cutout: '85%', borderWidth: 0 }] }, 
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
-        });
-
-        // Gráfico Clientes
-        new Chart(document.getElementById('gaugeClientes').getContext('2d'), { 
-            type: 'doughnut', 
-            data: { datasets: [{ data: [Math.min({{ clie_proj.atingimento_proj }}, 100), Math.max(0, 100 - {{ clie_proj.atingimento_proj }})], backgroundColor: ['{{ clie_proj.cor }}', '#f0f0f0'], circumference: 180, rotation: 270, cutout: '85%', borderWidth: 0 }] }, 
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
-        });
+        function createGauge(id, val, color){ new Chart(document.getElementById(id).getContext('2d'), { type: 'doughnut', data: { datasets: [{ data: [Math.min(val, 100), Math.max(0, 100 - val)], backgroundColor: [color, '#f0f0f0'], circumference: 180, rotation: 270, cutout: '85%', borderWidth: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
+        createGauge('gaugeEmpresa', {{ proj.atingimento_proj }}, '{{ proj.cor }}');
+        createGauge('gaugeClientes', {{ clie_proj.atingimento_proj }}, '{{ clie_proj.cor }}');
     </script>
 </body>
 </html>
