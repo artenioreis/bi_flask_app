@@ -2,54 +2,56 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa Estratégico - Varejão Farma</title>
+    <title>Mapa de Vendas - Varejão Farma</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
+        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
         .filter-bar { background: white; padding: 15px 30px; display: flex; gap: 20px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .stats-container { display: flex; gap: 15px; padding: 10px 30px; background: #f8f9fa; overflow-x: auto; }
+        .stat-card { background: white; padding: 10px 15px; border-radius: 8px; border-left: 5px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 200px; flex: 1; }
+        .stat-card.ml { border-left-color: #2ecc71; }
+        .stat-card.tl { border-left-color: #3498db; }
+        .stat-card.wl { border-left-color: #e67e22; }
+        .stat-card.total { border-left-color: #9b59b6; background: #fdfaff; }
+        .stat-card small { font-size: 9px; color: #999; font-weight: bold; text-transform: uppercase; }
+        .stat-card h4 { font-size: 15px; color: #333; margin: 2px 0; }
         #map { flex: 1; z-index: 1; }
         .btn { background: #667eea; color: white; padding: 8px 20px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>📍 Mapa de Vendas</h1>
-        <a href="/dashboard" style="color: white; text-decoration: none; font-size: 13px;">← Voltar ao BI</a>
-    </header>
-
+    <header><h1>📍 Inteligência Geográfica</h1><a href="/dashboard" style="color: white; text-decoration: none; font-size: 13px;">← Voltar ao BI</a></header>
     <form class="filter-bar" method="GET" action="/mapa">
-        <input type="date" name="inicio" value="{{ data_inicio }}">
-        <input type="date" name="fim" value="{{ data_fim }}">
-        <select name="vendedor" required>
-            <option value="">-- Selecione o Vendedor --</option>
-            {% for v in vendedores %}
-            <option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn">FILTRAR E LOCALIZAR</button>
+        <input type="date" name="inicio" value="{{ data_inicio }}"><input type="date" name="fim" value="{{ data_fim }}">
+        <select name="vendedor" required><option value="">-- Seleccione o Vendedor --</option>{% for v in vendedores %}<option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}</select>
+        <button type="submit" class="btn">FILTRAR</button>
     </form>
-
+    {% if vendedor_selecionado %}
+    <div class="stats-container">
+        <div class="stat-card ml"><small>Total Móvel (ML)</small><h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div></div>
+        <div class="stat-card tl"><small>Total Eletrônico (TL)</small><h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div></div>
+        <div class="stat-card wl"><small>Total Internet / WB (WL)</small><h4>R$ {{ "%.2f"|format(stats.web_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.web_qtd }}</strong> notas</div></div>
+        <div class="stat-card total"><small>TOTAL GERAL (SOMA)</small><h4 style="color: #8e44ad;">R$ {{ "%.2f"|format(stats.total_vlr) }}</h4><div style="font-size:11px;">Total: <strong>{{ stats.total_qtd }}</strong> notas</div></div>
+    </div>
+    {% endif %}
     <div id="map"></div>
-
     <script>
-        var map = L.map('map').setView([-23.5505, -46.6333], 10);
+        var map = L.map('map').setView([-3.7319, -38.5267], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
         const pontos = {{ pontos|tojson }};
-        
         if (pontos.length > 0) {
             var bounds = L.latLngBounds();
-            pontos.forEach(p => {
-                const coord = [p.lat, p.lon];
-                L.marker(coord).addTo(map).bindPopup(p.label + "<br><small>" + p.end + "</small>");
-                bounds.extend(coord);
+            pontos.forEach(p => { 
+                const coord = [p.lat, p.lon]; 
+                L.marker(coord).addTo(map).bindPopup(p.label + "<br><small>" + p.end + "</small>"); 
+                bounds.extend(coord); 
             });
             map.fitBounds(bounds, { padding: [50, 50] });
         } else if ("{{ vendedor_selecionado }}" !== "") {
-            alert("Nenhuma venda encontrada para este vendedor.");
+            alert("Atenção: O SQL encontrou os dados, mas o serviço de mapa não conseguiu converter os endereços em pontos geográficos. Verifique a conexão.");
         }
     </script>
 </body>
