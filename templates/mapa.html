@@ -2,56 +2,231 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa de Vendas - Varejão Farma</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocalização Estratégica - Varejão Farma</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --movel: #2ecc71;
+            --eletro: #3498db;
+            --web: #e67e22;
+            --total: #9b59b6;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
-        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .filter-bar { background: white; padding: 15px 30px; display: flex; gap: 20px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .stats-container { display: flex; gap: 15px; padding: 10px 30px; background: #f8f9fa; overflow-x: auto; }
-        .stat-card { background: white; padding: 10px 15px; border-radius: 8px; border-left: 5px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 200px; flex: 1; }
-        .stat-card.ml { border-left-color: #2ecc71; }
-        .stat-card.tl { border-left-color: #3498db; }
-        .stat-card.wl { border-left-color: #e67e22; }
-        .stat-card.total { border-left-color: #9b59b6; background: #fdfaff; }
-        .stat-card small { font-size: 9px; color: #999; font-weight: bold; text-transform: uppercase; }
-        .stat-card h4 { font-size: 15px; color: #333; margin: 2px 0; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+
+        header { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; 
+            padding: 15px 30px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .filter-bar { 
+            background: white; 
+            padding: 15px 30px; 
+            display: flex; 
+            gap: 20px; 
+            align-items: flex-end; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
+        
+        input, select { 
+            padding: 8px; 
+            border-radius: 4px; 
+            border: 1px solid #ddd; 
+            font-size: 13px; 
+            outline: none;
+            min-width: 160px;
+        }
+
+        /* Estilo dos Cards de Resumo */
+        .stats-wrapper { 
+            padding: 15px 30px; 
+            background: #f8f9fa; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stats-container { 
+            display: flex; 
+            gap: 15px; 
+            overflow-x: auto; 
+            padding-bottom: 5px; 
+        }
+
+        .stat-card { 
+            background: white; 
+            padding: 12px 18px; 
+            border-radius: 8px; 
+            border-left: 5px solid var(--primary); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            min-width: 210px; 
+            flex: 1; 
+        }
+
+        .stat-card.ml { border-left-color: var(--movel); }
+        .stat-card.tl { border-left-color: var(--eletro); }
+        .stat-card.wl { border-left-color: var(--web); }
+        .stat-card.total { border-left-color: var(--total); background: #fdfaff; }
+        .stat-card.operador { border-left-color: #bdc3c7; min-width: 160px; }
+
+        .stat-card small { font-size: 10px; color: #999; font-weight: bold; text-transform: uppercase; }
+        .stat-card h4 { font-size: 17px; color: #333; margin: 3px 0; }
+        .stat-card .detail { font-size: 12px; color: #666; }
+
         #map { flex: 1; z-index: 1; }
-        .btn { background: #667eea; color: white; padding: 8px 20px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            padding: 10px 25px; 
+            border-radius: 4px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover { background: var(--secondary); }
+
+        .section-title { font-size: 11px; font-weight: bold; color: #777; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Scrollbar customizada para os cards */
+        .stats-container::-webkit-scrollbar { height: 4px; }
+        .stats-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <header><h1>📍 Inteligência Geográfica</h1><a href="/dashboard" style="color: white; text-decoration: none; font-size: 13px;">← Voltar ao BI</a></header>
+
+    <header>
+        <div>
+            <h1 style="font-size: 20px;">📍 Inteligência Geográfica de Vendas</h1>
+            <p style="font-size: 11px; opacity: 0.8;">Análise de performance por canais e equipe</p>
+        </div>
+        <a href="/dashboard" style="color: white; text-decoration: none; font-size: 13px; border: 1px solid rgba(255,255,255,0.4); padding: 5px 15px; border-radius: 4px;">← Voltar ao BI</a>
+    </header>
+
     <form class="filter-bar" method="GET" action="/mapa">
-        <input type="date" name="inicio" value="{{ data_inicio }}"><input type="date" name="fim" value="{{ data_fim }}">
-        <select name="vendedor" required><option value="">-- Seleccione o Vendedor --</option>{% for v in vendedores %}<option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}</select>
-        <button type="submit" class="btn">FILTRAR</button>
+        <div class="filter-group">
+            <label>Data Inicial</label>
+            <input type="date" name="inicio" value="{{ data_inicio }}">
+        </div>
+        <div class="filter-group">
+            <label>Data Final</label>
+            <input type="date" name="fim" value="{{ data_fim }}">
+        </div>
+        <div class="filter-group">
+            <label>Vendedor Principal</label>
+            <select name="vendedor" required>
+                <option value="">-- Selecione o Vendedor --</option>
+                {% for v in vendedores %}
+                <option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn">FILTRAR VENDAS</button>
     </form>
+
     {% if vendedor_selecionado %}
-    <div class="stats-container">
-        <div class="stat-card ml"><small>Total Móvel (ML)</small><h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div></div>
-        <div class="stat-card tl"><small>Total Eletrônico (TL)</small><h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div></div>
-        <div class="stat-card wl"><small>Total Internet / WB (WL)</small><h4>R$ {{ "%.2f"|format(stats.web_vlr) }}</h4><div style="font-size:11px;">Qtd: <strong>{{ stats.web_qtd }}</strong> notas</div></div>
-        <div class="stat-card total"><small>TOTAL GERAL (SOMA)</small><h4 style="color: #8e44ad;">R$ {{ "%.2f"|format(stats.total_vlr) }}</h4><div style="font-size:11px;">Total: <strong>{{ stats.total_qtd }}</strong> notas</div></div>
+    <div class="stats-wrapper">
+        <div class="section-title">Resumo de Canais (Origem)</div>
+        <div class="stats-container">
+            <div class="stat-card ml">
+                <small>Móvel (ML)</small>
+                <h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4>
+                <div class="detail">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div>
+            </div>
+            <div class="stat-card tl">
+                <small>Eletrônico (TL)</small>
+                <h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4>
+                <div class="detail">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div>
+            </div>
+            <div class="stat-card wl">
+                <small>Internet (WL)</small>
+                <h4>R$ {{ "%.2f"|format(stats.web_vlr) }}</h4>
+                <div class="detail">Qtd: <strong>{{ stats.web_qtd }}</strong> notas</div>
+            </div>
+            <div class="stat-card total">
+                <small>TOTAL GERAL (SOMA)</small>
+                <h4 style="color: var(--total);">R$ {{ "%.2f"|format(stats.total_vlr) }}</h4>
+                <div class="detail">Total: <strong>{{ stats.total_qtd }}</strong> notas</div>
+            </div>
+        </div>
+        
+        <div class="section-title">Operadores de Telemarketing (Volume de Notas)</div>
+        <div class="stats-container">
+            {% for nome, qtd in stats.operadores.items() %}
+            <div class="stat-card operador">
+                <small>Operador</small>
+                <h4 style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ nome }}</h4>
+                <div class="detail">Notas: <strong>{{ qtd }}</strong></div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
+
     <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Inicializa o mapa focado na região de Fortaleza/CE por padrão
         var map = L.map('map').setView([-3.7319, -38.5267], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Carrega os pontos vindos do Python
         const pontos = {{ pontos|tojson }};
+        
         if (pontos.length > 0) {
             var bounds = L.latLngBounds();
-            pontos.forEach(p => { 
-                const coord = [p.lat, p.lon]; 
-                L.marker(coord).addTo(map).bindPopup(p.label + "<br><small>" + p.end + "</small>"); 
-                bounds.extend(coord); 
+            
+            pontos.forEach(function(p) {
+                const coord = [p.lat, p.lon];
+                
+                // Cria o marcador e adiciona ao mapa
+                L.marker(coord)
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="font-family: sans-serif; min-width: 150px;">
+                            <strong style="color: var(--primary); font-size: 14px;">${p.label}</strong><br>
+                            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+                            <span style="font-size: 12px; color: #666;">${p.end}</span>
+                        </div>
+                    `);
+                
+                // Estende os limites para o Auto-Zoom
+                bounds.extend(coord);
             });
+
+            // Ajusta o enquadramento automaticamente para mostrar todos os pinos
             map.fitBounds(bounds, { padding: [50, 50] });
         } else if ("{{ vendedor_selecionado }}" !== "") {
-            alert("Atenção: O SQL encontrou os dados, mas o serviço de mapa não conseguiu converter os endereços em pontos geográficos. Verifique a conexão.");
+            // Caso tenha filtrado mas não tenha retornado pontos
+            alert("Nenhuma venda localizada geograficamente para este período.");
         }
     </script>
 </body>

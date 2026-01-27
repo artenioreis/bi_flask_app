@@ -674,5 +674,29 @@
     "62870000_MICHELE FERREIRA ALVES": {
         "lat": "-4.1707697",
         "lon": "-38.4632075"
+    },
+    "63680000_FARMACIA LUZ E VIDA LTDA": {
+        "lat": "-32.0631280",
+        "lon": "-64.5453586"
+    },
+    "63680000_FARMACIA DO POVO PARAMBU LTDA": {
+        "lat": "-32.0631280",
+        "lon": "-64.5453586"
+    },
+    "60545495_F L PRODUTOS FARMACEUTICOS LTDA": {
+        "lat": "-9.9268758",
+        "lon": "-67.8431707"
+    },
+    "61920700_FARMACIA PREMIUM LTDA": {
+        "lat": "-18.5446876",
+        "lon": "-53.1286410"
+    },
+    "62750000_COMERCIAL DE MEDICAMENTOS ALBUQUERQUE LTDA": {
+        "lat": "-22.8060269",
+        "lon": "-43.4311271"
+    },
+    "62400000_J. DE S. SOARES MEDICAMENTOS LTDA": {
+        "lat": "-2.8976837",
+        "lon": "-40.8546098"
     }
 }
