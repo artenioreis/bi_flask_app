@@ -11,6 +11,7 @@
         .brand h1 { font-size: 20px; font-weight: 800; }
         .container { max-width: 1400px; margin: 15px auto; padding: 0 15px; }
         
+        /* FILTROS */
         .filters { background: white; padding: 12px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-end; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 15px; }
         .filter-group label { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; display: block; margin-bottom: 3px; }
         select, input { padding: 6px 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; outline: none; }
@@ -34,19 +35,21 @@
         .vencido { background: #fff5f6; color: #f5576c; }
         .em-dia { background: #e8f5e9; color: #2e7d32; }
         .btn { background: #667eea; color: white; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-map { background: #27ae60; }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
-        .modal-content { background: white; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content { background: white; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); line-height: 1.6; }
     </style>
 </head>
 <body>
     <header><div class="brand">BI Varejão <span>Farma</span></div><div style="font-size: 12px;">Olá, <strong>{{ session.get('user') }}</strong> | <a href="/logout" style="color:white;">Sair</a></div></header>
     <div class="container">
         <div class="filters">
-            <div class="filter-group"><label>Tipo</label><select id="tipo" onchange="toggle()"><option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral (Empresa)</option><option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option><option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option></select></div>
+            <div class="filter-group"><label>Tipo</label><select id="tipo" onchange="toggle()"><option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral</option><option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option><option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option></select></div>
             <div class="filter-group" id="vInput" style="display: {% if filtro_ativo == 'vendedor' %}block{% else %}none{% endif %};"><label>Vendedor</label><select id="vSel" style="min-width: 180px;"><option value="">-- Escolha --</option>{% for v in vendedores %}<option value="{{ v[0] }}" {% if valor_filtro|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}</select></div>
             <div class="filter-group" id="cInput" style="display: {% if filtro_ativo == 'cliente' %}block{% else %}none{% endif %};"><label>Cliente</label><input type="text" id="cSearch" value="{{ valor_filtro if filtro_ativo == 'cliente' else '' }}" placeholder="Pesquisar..."></div>
             <button class="btn" onclick="apply()">Filtrar</button>
+            <a href="/mapa" class="btn btn-map">📍 Mapa de Vendas</a>
         </div>
 
         <div class="projection-grid">
@@ -72,7 +75,9 @@
             </table>
         </div>
     </div>
-    <div id="helpModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;"><h3>Como ler o Termômetro?</h3><span style="cursor:pointer" onclick="closeHelp()">×</span></div><p style="font-size:13px; line-height:1.6;">O termômetro é <strong>preditivo</strong>. Ele avisa se o ritmo atual é suficiente para bater a meta no dia 31.<br><br>● <strong>Vermelho</strong>: Abaixo de 90%<br>● <strong>Amarelo</strong>: 90% a 99%<br>● <strong>Verde</strong>: Meta Batida (>=100%)</p></div></div>
+    
+    <div id="helpModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;"><h3>Como ler o Termômetro?</h3><span style="cursor:pointer; font-size:20px;" onclick="closeHelp()">×</span></div><p style="font-size:13px; line-height:1.6;">O termômetro é <strong>preditivo</strong>. Ele avisa se o ritmo atual é suficiente para bater a meta no dia 31.<br><br>● <strong>Abaixo de 100% (Zona de Alerta)</strong>: Ritmo insuficiente.<br>● <strong>Em 100% (Meta Batida)</strong>: Projeção equilibrada.<br>● <strong>Acima de 100% (Superação)</strong>: Vendedor "quente", irá ultrapassar a meta.</p></div></div>
+
     <script>
         function toggle(){ const t = document.getElementById('tipo').value; document.getElementById('vInput').style.display = t === 'vendedor' ? 'block' : 'none'; document.getElementById('cInput').style.display = t === 'cliente' ? 'block' : 'none'; }
         function apply(){ const t = document.getElementById('tipo').value; let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value; window.location.href = `/dashboard?tipo=${t}&valor=${v}`; }
