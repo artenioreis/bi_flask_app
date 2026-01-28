@@ -2,232 +2,143 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocalização Estratégica - Varejão Farma</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <title>Análise Estratégica Regional - Varejão Farma</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --movel: #2ecc71;
-            --eletro: #3498db;
-            --web: #e67e22;
-            --total: #9b59b6;
-        }
-
+        :root { --primary: #667eea; --movel: #2ecc71; --eletro: #3498db; --web: #e67e22; --total: #9b59b6; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding-bottom: 50px; }
+        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .filter-bar { background: white; padding: 15px 30px; display: flex; gap: 20px; align-items: flex-end; border-bottom: 1px solid #ddd; }
         
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #f0f2f5; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-        }
-
-        header { 
-            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
-            color: white; 
-            padding: 15px 30px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .filter-bar { 
-            background: white; 
-            padding: 15px 30px; 
-            display: flex; 
-            gap: 20px; 
-            align-items: flex-end; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            z-index: 100;
-        }
-
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .filter-group label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
+        .content-section { padding: 20px 30px; }
+        .grid-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
         
-        input, select { 
-            padding: 8px; 
-            border-radius: 4px; 
-            border: 1px solid #ddd; 
-            font-size: 13px; 
-            outline: none;
-            min-width: 160px;
-        }
+        /* Cards de Indicadores com Quantidade Abaixo */
+        .stats-container { display: flex; gap: 15px; overflow-x: auto; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; border-top: 4px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; flex: 1; min-width: 180px; }
+        .stat-card.ml { border-top-color: var(--movel); }
+        .stat-card.tl { border-top-color: var(--eletro); }
+        .stat-card.cli { border-top-color: var(--total); }
+        
+        .stat-card h4 { font-size: 18px; color: #333; margin: 5px 0; }
+        .stat-card small { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
+        .qtd-label { font-size: 12px; color: #666; font-weight: 500; border-top: 1px solid #eee; padding-top: 5px; margin-top: 5px; }
 
-        /* Estilo dos Cards de Resumo */
-        .stats-wrapper { 
-            padding: 15px 30px; 
-            background: #f8f9fa; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .stats-container { 
-            display: flex; 
-            gap: 15px; 
-            overflow-x: auto; 
-            padding-bottom: 5px; 
-        }
-
-        .stat-card { 
-            background: white; 
-            padding: 12px 18px; 
-            border-radius: 8px; 
-            border-left: 5px solid var(--primary); 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-            min-width: 210px; 
-            flex: 1; 
-        }
-
-        .stat-card.ml { border-left-color: var(--movel); }
-        .stat-card.tl { border-left-color: var(--eletro); }
-        .stat-card.wl { border-left-color: var(--web); }
-        .stat-card.total { border-left-color: var(--total); background: #fdfaff; }
-        .stat-card.operador { border-left-color: #bdc3c7; min-width: 160px; }
-
-        .stat-card small { font-size: 10px; color: #999; font-weight: bold; text-transform: uppercase; }
-        .stat-card h4 { font-size: 17px; color: #333; margin: 3px 0; }
-        .stat-card .detail { font-size: 12px; color: #666; }
-
-        #map { flex: 1; z-index: 1; }
-
-        .btn { 
-            background: var(--primary); 
-            color: white; 
-            padding: 10px 25px; 
-            border-radius: 4px; 
-            border: none; 
-            cursor: pointer; 
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        .btn:hover { background: var(--secondary); }
-
-        .section-title { font-size: 11px; font-weight: bold; color: #777; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* Scrollbar customizada para os cards */
-        .stats-container::-webkit-scrollbar { height: 4px; }
-        .stats-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* Tabela Detalhada apenas com ML */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th { background: #f8f9fa; font-size: 10px; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .city-tag { background: #667eea; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: inline-block; margin-top: 20px; }
+        .val-destaque { font-weight: bold; color: var(--movel); }
     </style>
 </head>
 <body>
-
     <header>
-        <div>
-            <h1 style="font-size: 20px;">📍 Inteligência Geográfica de Vendas</h1>
-            <p style="font-size: 11px; opacity: 0.8;">Análise de performance por canais e equipe</p>
-        </div>
-        <a href="/dashboard" style="color: white; text-decoration: none; font-size: 13px; border: 1px solid rgba(255,255,255,0.4); padding: 5px 15px; border-radius: 4px;">← Voltar ao BI</a>
+        <h1>📊 Relatório Regional e Performance</h1>
+        <a href="/dashboard" style="color:white; text-decoration:none; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 4px;">← Voltar ao Dashboard</a>
     </header>
 
     <form class="filter-bar" method="GET" action="/mapa">
-        <div class="filter-group">
-            <label>Data Inicial</label>
-            <input type="date" name="inicio" value="{{ data_inicio }}">
-        </div>
-        <div class="filter-group">
-            <label>Data Final</label>
-            <input type="date" name="fim" value="{{ data_fim }}">
-        </div>
-        <div class="filter-group">
-            <label>Vendedor Principal</label>
-            <select name="vendedor" required>
-                <option value="">-- Selecione o Vendedor --</option>
-                {% for v in vendedores %}
-                <option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="submit" class="btn">FILTRAR VENDAS</button>
+        <input type="date" name="inicio" value="{{ data_inicio }}">
+        <input type="date" name="fim" value="{{ data_fim }}">
+        <select name="vendedor" required>
+            <option value="">-- Selecione o Vendedor --</option>
+            {% for v in vendedores %}
+            <option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" style="background:var(--primary); color:white; border:none; padding:10px 25px; border-radius:4px; cursor:pointer; font-weight:bold;">FILTRAR</button>
     </form>
 
     {% if vendedor_selecionado %}
-    <div class="stats-wrapper">
-        <div class="section-title">Resumo de Canais (Origem)</div>
+    <div class="content-section">
         <div class="stats-container">
-            <div class="stat-card ml">
-                <small>Móvel (ML)</small>
-                <h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4>
-                <div class="detail">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div>
-            </div>
-            <div class="stat-card tl">
-                <small>Eletrônico (TL)</small>
-                <h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4>
-                <div class="detail">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div>
-            </div>
-            <div class="stat-card wl">
-                <small>Internet (WL)</small>
-                <h4>R$ {{ "%.2f"|format(stats.web_vlr) }}</h4>
-                <div class="detail">Qtd: <strong>{{ stats.web_qtd }}</strong> notas</div>
-            </div>
-            <div class="stat-card total">
-                <small>TOTAL GERAL (SOMA)</small>
-                <h4 style="color: var(--total);">R$ {{ "%.2f"|format(stats.total_vlr) }}</h4>
-                <div class="detail">Total: <strong>{{ stats.total_qtd }}</strong> notas</div>
-            </div>
-        </div>
-        
-        <div class="section-title">Operadores de Telemarketing (Volume de Notas)</div>
-        <div class="stats-container">
-            {% for nome, qtd in stats.operadores.items() %}
-            <div class="stat-card operador">
-                <small>Operador</small>
-                <h4 style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ nome }}</h4>
-                <div class="detail">Notas: <strong>{{ qtd }}</strong></div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <div id="map"></div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // Inicializa o mapa focado na região de Fortaleza/CE por padrão
-        var map = L.map('map').setView([-3.7319, -38.5267], 8);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Carrega os pontos vindos do Python
-        const pontos = {{ pontos|tojson }};
-        
-        if (pontos.length > 0) {
-            var bounds = L.latLngBounds();
+            <div class="stat-card cli"><small>Clientes Atendidos</small><h4>{{ stats.clientes_atendidos }}</h4></div>
             
-            pontos.forEach(function(p) {
-                const coord = [p.lat, p.lon];
-                
-                // Cria o marcador e adiciona ao mapa
-                L.marker(coord)
-                    .addTo(map)
-                    .bindPopup(`
-                        <div style="font-family: sans-serif; min-width: 150px;">
-                            <strong style="color: var(--primary); font-size: 14px;">${p.label}</strong><br>
-                            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
-                            <span style="font-size: 12px; color: #666;">${p.end}</span>
-                        </div>
-                    `);
-                
-                // Estende os limites para o Auto-Zoom
-                bounds.extend(coord);
-            });
+            <div class="stat-card ml">
+                <small>Vendas Móvel (ML)</small>
+                <h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4>
+                <div class="qtd-label">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div>
+            </div>
 
-            // Ajusta o enquadramento automaticamente para mostrar todos os pinos
-            map.fitBounds(bounds, { padding: [50, 50] });
-        } else if ("{{ vendedor_selecionado }}" !== "") {
-            // Caso tenha filtrado mas não tenha retornado pontos
-            alert("Nenhuma venda localizada geograficamente para este período.");
-        }
+            <div class="stat-card tl">
+                <small>Vendas Eletrônico (TL)</small>
+                <h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4>
+                <div class="qtd-label">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div>
+            </div>
+
+            <div class="stat-card"><small>Total Geral</small><h4>R$ {{ "%.2f"|format(stats.total_vlr) }}</h4></div>
+        </div>
+
+        <div class="grid-dashboard">
+            <div class="chart-container">
+                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📍 Top Bairros - Vendas Móvel (ML)</h3>
+                <canvas id="chartMovel"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📞 Desempenho por Operador (Notas)</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    {% for nome, qtd in stats.operadores.items() %}
+                    <div style="background:#f9f9f9; padding:10px; border-radius:6px; border-left:4px solid #bdc3c7;">
+                        <small style="font-size:9px; color:#999;">Operador</small>
+                        <div style="font-size:13px; font-weight:bold;">{{ nome }}</div>
+                        <div style="font-size:11px; color:var(--primary);">Notas: {{ qtd }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin: 30px 0 10px 0; color:#555;">🏁 Detalhamento Regional: Vendas Móvel (ML)</h3>
+        {% for cidade, bairros in regioes.items() %}
+            <div class="city-tag">{{ cidade }}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="60%">Bairro</th>
+                        <th width="40%">Faturamento Móvel (ML)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bairro, dados in bairros.items() %}
+                    <tr>
+                        <td>{{ bairro }}</td>
+                        <td class="val-destaque">R$ {{ "%.2f"|format(dados.ML[0]) }} <small style="color:#999;">({{ dados.ML[1] }} notas)</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    </div>
+
+    <script>
+        const ctx = document.getElementById('chartMovel').getContext('2d');
+        const labels = {{ chart_ml|map(attribute='label')|list|tojson }};
+        const data = {{ chart_ml|map(attribute='valor')|list|tojson }};
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Vendas Móvel (R$)',
+                    data: data,
+                    backgroundColor: '#2ecc71',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
     </script>
+    {% endif %}
 </body>
 </html>
