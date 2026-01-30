@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciamento - Varejão Farma</title>
+    <style>
+        :root { --primary: #667eea; --success: #2ecc71; --danger: #e74c3c; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; }
+        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 30px; max-width: 1000px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h3 { color: #444; margin-bottom: 20px; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .success { background: #e8f5e9; color: var(--success); }
+        .danger { background: #ffebee; color: var(--danger); }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-top: 15px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-test { background: #f0f0f0; color: #555; }
+        input[type="file"] { margin: 10px 0; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚙️ Gerenciamento do Sistema</h1>
+        <a href="/dashboard" style="color: white; text-decoration: none; font-size: 14px;">← Voltar ao BI</a>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h3>🔌 Conexão SQL Server</h3>
+                <p style="font-size: 14px; color: #666;">Status Atual: 
+                    <span class="status-badge {% if db_status == 'Configurado' %}success{% else %}danger{% endif %}">
+                        {{ db_status }}
+                    </span>
+                </p>
+                <button class="btn btn-test" onclick="testarConexao()">Testar Conexão Agora</button>
+                <div id="db-msg" style="margin-top: 15px; font-size: 13px; font-weight: bold;"></div>
+                <a href="/login" style="display: block; margin-top: 15px; font-size: 12px; color: var(--primary); text-align: center;">Alterar Configurações no Login</a>
+            </div>
+
+            <div class="card">
+                <h3>📊 Metas dos Clientes (Excel)</h3>
+                <p style="font-size: 14px; color: #666;">Arquivo: 
+                    <span class="status-badge {% if excel_status == 'Presente' %}success{% else %}danger{% endif %}">
+                        {{ excel_status }}
+                    </span>
+                </p>
+                {% if excel_date %}
+                <p style="font-size: 12px; color: #999; margin-top: 5px;">Última atualização: {{ excel_date }}</p>
+                {% endif %}
+                
+                <form action="/upload_metas" method="POST" enctype="multipart/form-data" style="margin-top: 20px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #888;">UPLOAD DE NOVO ARQUIVO:</label>
+                    <input type="file" name="file" accept=".xlsx" required>
+                    <button type="submit" class="btn btn-primary">ATUALIZAR METAS</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testarConexao() {
+            const msgDiv = document.getElementById('db-msg');
+            msgDiv.innerText = "Testando...";
+            msgDiv.style.color = "#888";
+
+            fetch('/testar_conexao_ajax')
+                .then(response => response.json())
+                .then(data => {
+                    msgDiv.innerText = data.message;
+                    msgDiv.style.color = data.status === 'success' ? '#2ecc71' : '#e74c3c';
+                })
+                .catch(err => {
+                    msgDiv.innerText = "Erro ao processar teste.";
+                    msgDiv.style.color = "#e74c3c";
+                });
+        }
+    </script>
+</body>
+</html>

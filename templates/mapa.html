@@ -2,49 +2,39 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Análise Estratégica Regional - Varejão Farma</title>
+    <title>Análise Regional - BI Varejão Farma v43</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #667eea; --movel: #2ecc71; --eletro: #3498db; --web: #e67e22; --total: #9b59b6; }
+        :root { --primary: #667eea; --movel: #2ecc71; --eletro: #3498db; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding-bottom: 50px; }
         header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .v-tag { background: #fff; color: #667eea; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; font-weight: 900; vertical-align: middle; }
         .filter-bar { background: white; padding: 15px 30px; display: flex; gap: 20px; align-items: flex-end; border-bottom: 1px solid #ddd; }
-        
         .content-section { padding: 20px 30px; }
-        .grid-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        
-        /* Cards de Indicadores com Quantidade Abaixo */
-        .stats-container { display: flex; gap: 15px; overflow-x: auto; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 15px; border-radius: 10px; border-top: 4px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; flex: 1; min-width: 180px; }
+        .stats-container { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; border-top: 4px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; flex: 1; }
         .stat-card.ml { border-top-color: var(--movel); }
-        .stat-card.tl { border-top-color: var(--eletro); }
-        .stat-card.cli { border-top-color: var(--total); }
-        
         .stat-card h4 { font-size: 18px; color: #333; margin: 5px 0; }
         .stat-card small { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; }
-        .qtd-label { font-size: 12px; color: #666; font-weight: 500; border-top: 1px solid #eee; padding-top: 5px; margin-top: 5px; }
-
         .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        
-        /* Tabela Detalhada apenas com ML */
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .grid-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; margin-top: 10px; }
         th { background: #f8f9fa; font-size: 10px; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 2px solid #eee; }
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .city-tag { background: #667eea; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: inline-block; margin-top: 20px; }
-        .val-destaque { font-weight: bold; color: var(--movel); }
+        .city-tag { background: #667eea; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 20px; display: inline-block; }
     </style>
 </head>
 <body>
     <header>
-        <h1>📊 Relatório Regional e Performance</h1>
-        <a href="/dashboard" style="color:white; text-decoration:none; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 4px;">← Voltar ao Dashboard</a>
+        <h1>📊 Relatório Regional <span class="v-tag">VERSÃO V43</span></h1>
+        <a href="/dashboard" style="color:white; text-decoration:none; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 4px;">← Voltar</a>
     </header>
 
     <form class="filter-bar" method="GET" action="/mapa">
         <input type="date" name="inicio" value="{{ data_inicio }}">
         <input type="date" name="fim" value="{{ data_fim }}">
-        <select name="vendedor" required>
+        <select name="vendedor" required style="padding:8px; border-radius:5px; border:1px solid #ddd; flex-grow:1;">
             <option value="">-- Selecione o Vendedor --</option>
             {% for v in vendedores %}
             <option value="{{ v[0] }}" {% if vendedor_selecionado|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>
@@ -53,92 +43,60 @@
         <button type="submit" style="background:var(--primary); color:white; border:none; padding:10px 25px; border-radius:4px; cursor:pointer; font-weight:bold;">FILTRAR</button>
     </form>
 
-    {% if vendedor_selecionado %}
     <div class="content-section">
+        {% if vendedor_selecionado %}
         <div class="stats-container">
-            <div class="stat-card cli"><small>Clientes Atendidos</small><h4>{{ stats.clientes_atendidos }}</h4></div>
-            
-            <div class="stat-card ml">
-                <small>Vendas Móvel (ML)</small>
-                <h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4>
-                <div class="qtd-label">Qtd: <strong>{{ stats.movel_qtd }}</strong> notas</div>
-            </div>
-
-            <div class="stat-card tl">
-                <small>Vendas Eletrônico (TL)</small>
-                <h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4>
-                <div class="qtd-label">Qtd: <strong>{{ stats.eletro_qtd }}</strong> notas</div>
-            </div>
-
-            <div class="stat-card"><small>Total Geral</small><h4>R$ {{ "%.2f"|format(stats.total_vlr) }}</h4></div>
+            <div class="stat-card"><small>Clientes Atendidos</small><h4>{{ stats.clientes_atendidos }}</h4></div>
+            <div class="stat-card ml"><small>Vendas Móvel (ML)</small><h4>R$ {{ "%.2f"|format(stats.movel_vlr) }}</h4></div>
+            <div class="stat-card" style="border-top-color:#3498db;"><small>Vendas Eletrônico (TL)</small><h4>R$ {{ "%.2f"|format(stats.eletro_vlr) }}</h4></div>
+            <div class="stat-card" style="border-top-color:#9b59b6;"><small>Faturamento Total</small><h4>R$ {{ "%.2f"|format(stats.total_vlr) }}</h4></div>
         </div>
 
         <div class="grid-dashboard">
             <div class="chart-container">
-                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📍 Top Bairros - Vendas Móvel (ML)</h3>
+                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📍 Top 10 Bairros (ML)</h3>
                 <canvas id="chartMovel"></canvas>
             </div>
 
             <div class="chart-container">
-                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📞 Desempenho por Operador (Notas)</h3>
+                <h3 style="font-size:14px; margin-bottom:15px; color:#555;">📞 Desempenho por Operador (Telemarketing)</h3>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                     {% for nome, qtd in stats.operadores.items() %}
-                    <div style="background:#f9f9f9; padding:10px; border-radius:6px; border-left:4px solid #bdc3c7;">
-                        <small style="font-size:9px; color:#999;">Operador</small>
-                        <div style="font-size:13px; font-weight:bold;">{{ nome }}</div>
-                        <div style="font-size:11px; color:var(--primary);">Notas: {{ qtd }}</div>
+                    <div style="background:#f9f9f9; padding:10px; border-radius:6px; border-left:4px solid #ddd;">
+                        <div style="font-size:11px; font-weight:bold;">{{ nome }}</div>
+                        <div style="font-size:10px; color:var(--primary);">{{ qtd }} notas emitidas</div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <h3 style="margin: 30px 0 10px 0; color:#555;">🏁 Detalhamento Regional: Vendas Móvel (ML)</h3>
         {% for cidade, bairros in regioes.items() %}
             <div class="city-tag">{{ cidade }}</div>
             <table>
-                <thead>
-                    <tr>
-                        <th width="60%">Bairro</th>
-                        <th width="40%">Faturamento Móvel (ML)</th>
-                    </tr>
-                </thead>
+                <thead><tr><th width="70%">Bairro</th><th width="30%">Faturamento ML</th></tr></thead>
                 <tbody>
                     {% for bairro, dados in bairros.items() %}
-                    <tr>
-                        <td>{{ bairro }}</td>
-                        <td class="val-destaque">R$ {{ "%.2f"|format(dados.ML[0]) }} <small style="color:#999;">({{ dados.ML[1] }} notas)</small></td>
-                    </tr>
+                    <tr><td>{{ bairro }}</td><td style="font-weight:bold; color:var(--movel);">R$ {{ "%.2f"|format(dados.ML[0]) }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% endfor %}
+        {% endif %}
     </div>
 
     <script>
+        {% if vendedor_selecionado %}
         const ctx = document.getElementById('chartMovel').getContext('2d');
-        const labels = {{ chart_ml|map(attribute='label')|list|tojson }};
-        const data = {{ chart_ml|map(attribute='valor')|list|tojson }};
-
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Vendas Móvel (R$)',
-                    data: data,
-                    backgroundColor: '#2ecc71',
-                    borderRadius: 5
-                }]
+                labels: {{ chart_ml|map(attribute='label')|list|tojson }},
+                datasets: [{ label: 'Vendas R$', data: {{ chart_ml|map(attribute='valor')|list|tojson }}, backgroundColor: '#2ecc71', borderRadius: 5 }]
             },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
-            }
+            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
         });
+        {% endif %}
     </script>
-    {% endif %}
 </body>
 </html>

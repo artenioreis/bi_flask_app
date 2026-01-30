@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-usuarios" style="padding: 30px;">
+    <h2 style="color: #333; margin-bottom: 20px;">Gestão de Acessos</h2>
+    
+    <div class="card-cadastro" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <form method="POST" style="display: flex; gap: 15px; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label>Nome</label>
+                <input type="text" name="nome" class="form-control" required style="width: 100%; padding: 8px;">
+            </div>
+            <div style="flex: 1;">
+                <label>Login</label>
+                <input type="text" name="login" class="form-control" required style="width: 100%; padding: 8px;">
+            </div>
+            <div style="flex: 1;">
+                <label>Senha</label>
+                <input type="password" name="senha" class="form-control" required style="width: 100%; padding: 8px;">
+            </div>
+            <button type="submit" class="btn-cadastrar" style="padding: 10px 25px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Salvar</button>
+        </form>
+    </div>
+
+    <table style="width: 100%; margin-top: 30px; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden;">
+        <thead>
+            <tr style="background: #007bff; color: white; text-align: left;">
+                <th style="padding: 15px;">Nome</th>
+                <th style="padding: 15px;">Login</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 15px;">{{ u[1] }}</td>
+                <td style="padding: 15px;">{{ u[2] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
