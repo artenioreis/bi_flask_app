@@ -2,138 +2,47 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BI Varejão</title>
+    <title>Login - BI Varejão v43.1</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .login-container {
-            background: white;
-            padding: 50px 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 400px;
-        }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .logo {
-            max-width: 150px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        h1 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            color: #333;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-        input[type="text"]:focus,
-        input[type="password"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-        .btn-login:active {
-            transform: translateY(0);
-        }
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            border-left: 4px solid #c33;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #999;
-            font-size: 12px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: center; }
+        h1 { color: #333; font-size: 26px; margin-bottom: 5px; }
+        .v-tag { color: #888; font-size: 13px; margin-bottom: 30px; display: block; }
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #444; }
+        input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 6px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #667eea; }
+        .btn-entrar { width: 100%; padding: 12px; background: linear-gradient(to right, #667eea, #764ba2); color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; }
+        .error { background: #fee; color: #d32f2f; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 13px; font-weight: 600; }
+        .config-link { margin-top: 25px; font-size: 12px; }
+        .config-link a { color: #667eea; text-decoration: none; cursor: pointer; }
+        #dbConfig { display: none; margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; text-align: left; border: 1px solid #eee; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo-container">
-            <img src="/static/images/logo.png" alt="Logo Varejão" class="logo">
-            <h1>BI Varejão</h1>
-            <p class="subtitle">Sistema de Inteligência de Negócios</p>
-        </div>
+    <div class="login-box">
+        <h1>BI Varejão Farma</h1>
+        <span class="v-tag">Versão v43.1 - Inteligência de Negócios</span>
 
-        {% if erro %}
-        <div class="error-message">{{ erro }}</div>
-        {% endif %}
+        {% if erro %}<div class="error">{{ erro }}</div>{% endif %}
 
         <form method="POST" action="/login">
-            <div class="form-group">
-                <label for="username">Usuário</label>
-                <input type="text" id="username" name="username" required autofocus>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Senha</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <button type="submit" class="btn-login">Entrar</button>
+            <div class="form-group"><label>Usuário</label><input type="text" name="username" required autofocus></div>
+            <div class="form-group"><label>Senha</label><input type="password" name="password" required></div>
+            <button type="submit" class="btn-entrar">Entrar no Sistema</button>
         </form>
 
-        <div class="footer">
-            <p>&copy; 2026 Varejão. Todos os direitos reservados.</p>
+        <div class="config-link"><a onclick="document.getElementById('dbConfig').style.display='block'">⚙️ Configurar Conexão do Banco</a></div>
+
+        <div id="dbConfig">
+            <form method="POST" action="/configurar_banco">
+                <div class="form-group"><label>Servidor</label><input type="text" name="server" value="{{ config.server or '' }}"></div>
+                <div class="form-group"><label>Banco</label><input type="text" name="database" value="{{ config.database or '' }}"></div>
+                <div class="form-group"><label>Usuário SQL</label><input type="text" name="username" value="{{ config.username or '' }}"></div>
+                <div class="form-group"><label>Senha SQL</label><input type="password" name="password" value="{{ config.password or '' }}"></div>
+                <button type="submit" class="btn-entrar" style="font-size:12px; padding:8px;">Salvar SQL</button>
+            </form>
         </div>
     </div>
 </body>
