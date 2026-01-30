@@ -2,223 +2,102 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise Cliente: {{ cliente[1] }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; }
-        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .navbar-brand { font-size: 20px; font-weight: bold; text-decoration: none; color: white; display: flex; align-items: center; }
-        .v-tag { background-color: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
-        .nav-links { display: flex; gap: 20px; align-items: center; }
-        .nav-link { color: rgba(255,255,255,0.8); text-decoration: none; font-weight: 500; transition: color 0.3s; font-size: 14px; }
-        .nav-link:hover { color: white; }
-        .btn-back { background-color: rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: 600; transition: background 0.3s; display: flex; align-items: center; font-size: 14px; border: 1px solid rgba(255,255,255,0.2); }
-        .btn-back:hover { background-color: rgba(255,255,255,0.2); }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; }
+        .navbar { background: linear-gradient(135deg, #667eea, #764ba2); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; color: white; }
+        .navbar-brand { font-size: 20px; font-weight: bold; text-decoration: none; color: white; }
+        .v-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
+        .btn-back { background-color: rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); }
         .main-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
-        .card-client-header { grid-column: 1 / -1; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #667eea; }
-        .client-info h1 { font-size: 24px; color: #2c3e50; margin-bottom: 5px; }
-        .client-code { color: #7f8c8d; font-size: 16px; }
-        .client-kpis { display: flex; gap: 30px; }
-        .kpi-box { text-align: right; }
-        .kpi-label { font-size: 13px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
-        .kpi-value { font-size: 22px; font-weight: 800; color: #2c3e50; }
-        .kpi-value.ok { color: #2ecc71; }
-        .kpi-value.danger { color: #e74c3c; }
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); transition: transform 0.3s; }
-        .card:hover { transform: translateY(-5px); }
-        .card-title { font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .card-header-client { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #667eea; }
         .finance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .finance-item { background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #e9ecef; }
-        .finance-label { font-size: 14px; color: #7f8c8d; margin-bottom: 8px; }
-        .finance-val { font-size: 20px; font-weight: 800; color: #2c3e50; }
-        .progress-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-        .gauge-wrap { width: 160px; height: 160px; position: relative; }
-        .gauge-perc { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 800; color: #2c3e50; }
-        .gauge-label { text-align: center; margin-top: 15px; font-size: 14px; color: #7f8c8d; }
+        .finance-item { background: #f8f9fa; padding: 15px; border-radius: 12px; text-align: center; border-left: 4px solid #667eea; }
         .chart-container { height: 300px; position: relative; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th { text-align: left; padding: 15px; background-color: #f8f9fa; color: #2c3e50; font-weight: 700; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #e9ecef; }
-        td { padding: 15px; border-bottom: 1px solid #f0f2f5; font-size: 14px; color: #555; }
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
-        .status-ok { background-color: #d4edda; color: #155724; }
-        .status-danger { background-color: #f8d7da; color: #721c24; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; background: #f8f9fa; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #f0f2f5; }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <a href="/dashboard" class="navbar-brand">
-            BI Varejão Farma <span class="v-tag">v43.6</span>
-        </a>
-        <div class="nav-links">
-            <a href="/dashboard" class="btn-back">← Voltar ao Dashboard</a>
-            <a href="/logout" class="nav-link" style="color: #ffcccc;">Sair</a>
+        <a href="/dashboard" class="navbar-brand">BI Varejão Farma <span class="v-tag">v43.4 Blindada</span></a>
+        <div>
+            <a href="/dashboard" class="btn-back">← Voltar</a>
+            <a href="/logout" style="color: white; margin-left: 15px; text-decoration: none;">Sair</a>
         </div>
     </nav>
 
     <div class="main-container">
-        <div class="card-client-header">
-            <div class="client-info">
-                <h1>{{ cliente[1] }}</h1>
-                <span class="client-code">Cód: {{ cliente[0] }}</span>
-            </div>
-            <div class="client-kpis">
-                <div class="kpi-box">
-                    <div class="kpi-label">Situação</div>
-                    <div class="kpi-value {% if dias_atraso > 0 %}danger{% else %}ok{% endif %}">
-                        {% if dias_atraso > 0 %}Em Atraso ({{ dias_atraso }}d){% else %}Regular{% endif %}
-                    </div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-label">Saldo Devedor</div>
-                    <div class="kpi-value">R$ {{ "%.2f"|format(saldo) }}</div>
+        <div class="card card-header-client">
+            <div><h1>{{ cliente[1] }}</h1><small>Código: {{ cliente[0] }}</small></div>
+            <div style="text-align: right;">
+                <div style="font-size: 12px; color: #7f8c8d;">SITUAÇÃO</div>
+                <div style="font-size: 22px; font-weight: 800; color: {% if dias_atraso > 0 %}#e74c3c{% else %}#2ecc71{% endif %};">
+                    {% if dias_atraso > 0 %}EM ATRASO ({{ dias_atraso }}d){% else %}REGULAR{% endif %}
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h3 class="card-title">Resumo Financeiro</h3>
+            <h3 style="margin-bottom: 15px;">Resumo Financeiro</h3>
             <div class="finance-grid">
-                <div class="finance-item" style="border-left: 4px solid #667eea;">
-                    <div class="finance-label">Limite de Crédito</div>
-                    <div class="finance-val">R$ {{ "%.2f"|format(limite_credito) }}</div>
-                </div>
-                <div class="finance-item" style="border-left: 4px solid #2ecc71;">
-                    <div class="finance-label">Venda Mês Atual</div>
-                    <div class="finance-val">R$ {{ "%.2f"|format(vendas_atual) }}</div>
-                </div>
-                <div class="finance-item" style="border-left: 4px solid #f1c40f;">
-                    <div class="finance-label">Meta do Mês (Excel)</div>
-                    <div class="finance-val">R$ {{ "%.2f"|format(objetivo) }}</div>
-                </div>
-                <div class="finance-item" style="border-left: 4px solid {% if dias_atraso > 0 %}#e74c3c{% else %}#2ecc71{% endif %};">
-                    <div class="finance-label">Maior Atraso</div>
-                    <div class="finance-val" style="color: {% if dias_atraso > 0 %}#e74c3c{% else %}#2ecc71{% endif %};">
-                        {{ dias_atraso }} dias
-                    </div>
-                </div>
+                <div class="finance-item"><div>Limite</div><strong>R$ {{ "%.2f"|format(limite_credito) }}</strong></div>
+                <div class="finance-item" style="border-color: #2ecc71;"><div>Venda Real</div><strong>R$ {{ "%.2f"|format(vendas_atual) }}</strong></div>
+                <div class="finance-item" style="border-color: #f1c40f;"><div>Meta (Excel)</div><strong>R$ {{ "%.2f"|format(objetivo) }}</strong></div>
+                <div class="finance-item" style="border-color: {% if dias_atraso > 0 %}#e74c3c{% else %}#2ecc71{% endif %};"><div>Atraso</div><strong>{{ dias_atraso }} dias</strong></div>
             </div>
         </div>
 
-        <div class="card">
-            <h3 class="card-title">Atingimento de Meta</h3>
-            <div class="progress-container">
-                <div class="gauge-wrap">
-                    <canvas id="metaGauge"></canvas>
-                    <div class="gauge-perc" id="gaugePercVal">0%</div>
-                </div>
-                <div class="gauge-label">Progresso sobre Objetivo do Excel</div>
-            </div>
+        <div class="card" style="text-align: center;">
+            <h3 style="margin-bottom: 15px;">Atingimento de Meta</h3>
+            <div style="height: 150px;"><canvas id="metaGauge"></canvas></div>
+            <div id="percVal" style="font-size: 24px; font-weight: 800; margin-top: -30px;">0%</div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h3 class="card-title">Evolução Mensal (Comparativo Anual)</h3>
-            <div class="chart-container">
-                <canvas id="compChart"></canvas>
-            </div>
+            <h3 style="margin-bottom: 15px;">Evolução Mensal (Comparativo Anual)</h3>
+            <div class="chart-container"><canvas id="compChart"></canvas></div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h3 class="card-title">Títulos em Aberto</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Documento</th>
-                            <th>Parc.</th>
-                            <th>Emissão</th>
-                            <th>Vencimento</th>
-                            <th>Valor Original</th>
-                            <th>Saldo Atual</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in titulos %}
-                        <tr>
-                            <td>{{ t[0] }}</td>
-                            <td>{{ t[1] }}</td>
-                            <td>{{ t[4].strftime('%d/%m/%Y') if t[4] else '--' }}</td>
-                            <td>{{ t[5].strftime('%d/%m/%Y') if t[5] else '--' }}</td>
-                            <td>R$ {{ "%.2f"|format(t[2]) }}</td>
-                            <td style="font-weight: bold;">R$ {{ "%.2f"|format(t[3]) }}</td>
-                            <td>
-                                {% if t[6] > 0 %}
-                                <span class="status-badge status-danger">Atrasado {{ t[6] }}d</span>
-                                {% else %}
-                                <span class="status-badge status-ok">Em dia</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 20px; color: #999;">Nenhum título pendente.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <h3 style="margin-bottom: 15px;">Títulos em Aberto</h3>
+            <table>
+                <thead><tr><th>Documento</th><th>Emissão</th><th>Vencimento</th><th>Valor</th><th>Saldo</th></tr></thead>
+                <tbody>
+                    {% for t in titulos %}
+                    <tr><td>{{ t[0] }}</td><td>{{ t[4].strftime('%d/%m/%Y') }}</td><td>{{ t[5].strftime('%d/%m/%Y') }}</td><td>R$ {{ "%.2f"|format(t[2]) }}</td><td>R$ {{ "%.2f"|format(t[3]) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        // GAUGE META
-        const meta = {{ objetivo }};
-        const atual = {{ vendas_atual }};
-        const perc = meta > 0 ? (atual / meta * 100) : 0;
-        document.getElementById('gaugePercVal').textContent = perc.toFixed(1) + '%';
+        // GAUGE
+        const perc = {{ objetivo }} > 0 ? ({{ vendas_atual }} / {{ objetivo }} * 100) : 0;
+        document.getElementById('percVal').textContent = perc.toFixed(1) + '%';
+        new Chart(document.getElementById('metaGauge'), { type: 'doughnut', data: { datasets: [{ data: [Math.min(perc, 100), Math.max(0, 100 - perc)], backgroundColor: ['#2ecc71', '#eee'], circumference: 180, rotation: 270, cutout: '80%' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
 
-        new Chart(document.getElementById('metaGauge'), {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [Math.min(perc, 100), Math.max(0, 100 - perc)],
-                    backgroundColor: ['#2ecc71', '#e9ecef'],
-                    borderWidth: 0,
-                    circumference: 180,
-                    rotation: 270,
-                    cutout: '85%'
-                }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-        });
-
-        // GRÁFICO DE BARRAS (BLINDADO)
-        const histData = {{ comparativo | tojson }};
-        const data2024 = Array(12).fill(0);
-        const data2025 = Array(12).fill(0);
-        const data2026 = Array(12).fill(0);
-
-        histData.forEach(d => {
-            const idx = d.mes - 1;
-            if (d.ano === 2024) data2024[idx] = d.total;
-            else if (d.ano === 2025) data2025[idx] = d.total;
-            else if (d.ano === 2026) data2026[idx] = d.total;
-        });
+        // GRÁFICO DE BARRAS
+        const hist = {{ comparativo | tojson }};
+        const d24 = Array(12).fill(0), d25 = Array(12).fill(0), d26 = Array(12).fill(0);
+        hist.forEach(h => { if(h.ano===2024) d24[h.mes-1]=h.total; else if(h.ano===2025) d25[h.mes-1]=h.total; else if(h.ano===2026) d26[h.mes-1]=h.total; });
 
         new Chart(document.getElementById('compChart'), {
-            type: 'bar', // MANTIDO EM BARRAS CONFORME SOLICITADO
+            type: 'bar',
             data: {
-                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                labels: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
                 datasets: [
-                    { label: '2024', data: data2024, backgroundColor: 'rgba(231, 76, 60, 0.7)', borderColor: '#e74c3c', borderWidth: 1 },
-                    { label: '2025', data: data2025, backgroundColor: 'rgba(241, 196, 15, 0.7)', borderColor: '#f1c40f', borderWidth: 1 },
-                    { label: '2026', data: data2026, backgroundColor: 'rgba(46, 204, 113, 0.7)', borderColor: '#2ecc71', borderWidth: 1 }
+                    { label: '2024', data: d24, backgroundColor: '#e74c3c' },
+                    { label: '2025', data: d25, backgroundColor: '#f1c40f' },
+                    { label: '2026', data: d26, backgroundColor: '#2ecc71' }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: R$ ${ctx.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
-                        }
-                    }
-                },
-                scales: { y: { beginAtZero: true } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
     </script>
 </body>

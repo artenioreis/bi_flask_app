@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Versão blindada v43.8
-app.config['SECRET_KEY'] = 'varejao_bi_farma_2026_v43_8_blindada'
+# Identificação da Versão Blindada v43.4
+app.config['SECRET_KEY'] = 'varejao_bi_farma_2026_v43_4_blindada'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
@@ -97,7 +97,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ============================================
-# DASHBOARD (BLINDADO v43.6)
+# DASHBOARD v43.4
 # ============================================
 
 @app.route('/dashboard')
@@ -137,8 +137,8 @@ def dashboard():
         vnd = float(r[4] or 0)
         t_m_c += m_c; t_v_c += vnd; t_lim += float(r[2]); t_deb += float(r[3])
         sql_at = f"SELECT MIN(Dat_Vencimento) FROM CTREC WHERE Cod_Cliente = {r[0]} AND Vlr_Saldo > 0 AND Status IN ('A', 'P')"
-        atr_d = 0
         res_at = execute_query(sql_at)
+        atr_d = 0
         if res_at and res_at[0][0]:
             venc = res_at[0][0].date() if isinstance(res_at[0][0], datetime) else res_at[0][0]
             if venc < hoje: atr_d = (hoje - venc).days; q_atr += 1
@@ -152,7 +152,7 @@ def dashboard():
                          geral_clie={'limite': t_lim, 'debito': t_deb, 'atraso': q_atr}, vendedor_stats=v_stats)
 
 # ============================================
-# ANÁLISE CLIENTE (BLINDADO v43.6)
+# ANÁLISE CLIENTE (GRÁFICO 2024-2026)
 # ============================================
 
 @app.route('/analise/<int:cliente_id>')
@@ -160,16 +160,20 @@ def dashboard():
 def analise_cliente(cliente_id):
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0) FROM clien WHERE Codigo = {cliente_id}")
     if not res: return redirect(url_for('dashboard'))
+    
     titulos = execute_query(f"SELECT Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento, DATEDIFF(DAY, Dat_Vencimento, GETDATE()) FROM CTREC WHERE Cod_Cliente = {cliente_id} AND Vlr_Saldo > 0")
     d_atr_max = max([int(t[6]) for t in titulos if int(t[6]) > 0] or [0])
     v_at = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND MONTH(Dat_Emissao) = 1")[0][0] or 0)
+    
+    # Busca histórica obrigatória
     sql_hist = f"SELECT YEAR(Dat_Emissao), MONTH(Dat_Emissao), SUM(Vlr_TotalNota) FROM NFSCB WITH (NOLOCK) WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND Cod_Estabe = 0 AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) GROUP BY YEAR(Dat_Emissao), MONTH(Dat_Emissao) ORDER BY 1, 2"
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]
+    
     return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), vendas_atual=v_at, titulos=titulos)
 
 # ============================================
-# MAPA REGIONAL (CORRIGIDO v43.8)
+# MAPA REGIONAL (FIX Erro 22007)
 # ============================================
 
 @app.route('/mapa')
@@ -183,41 +187,33 @@ def mapa_vendas():
     regioes, chart_ml, stats = {}, [], {'movel_qtd': 0, 'movel_vlr': 0.0, 'eletro_qtd': 0, 'eletro_vlr': 0.0, 'total_qtd': 0, 'total_vlr': 0.0, 'clientes_atendidos': 0, 'operadores': {}}
 
     if vendedor_id:
-        try:
-            # Formato Neutro SQL Server YYYYMMDD para evitar erro 22007
-            d_ini = inicio_raw.replace("-", "")
-            d_fim = fim_raw.replace("-", "")
+        # Formato compactado para evitar erro smalldatetime
+        d_ini = inicio_raw.replace("-", "")
+        d_fim = fim_raw.replace("-", "")
 
-            query = f"""SELECT ISNULL(nf.Cidade, 'NAO INF.'), ISNULL(nf.Bairro, 'NAO INF.'), nf.Cod_OrigemNfs, 
-                        SUM(nf.Vlr_TotalNota), COUNT(nf.Num_Nota), ISNULL(ve.Nome_Guerra, 'NAO IDENT.') 
-                        FROM nfscb nf WITH (NOLOCK) LEFT JOIN VENDE ve ON ve.Codigo = nf.Cod_VendTlmkt
-                        WHERE nf.Cod_Estabe = 0 AND nf.Status = 'F' 
-                        AND nf.Cod_Vendedor = {int(vendedor_id)} 
-                        AND nf.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
-                        GROUP BY nf.Cidade, nf.Bairro, nf.Cod_OrigemNfs, ve.Nome_Guerra"""
-            
-            res = execute_query(query)
-            for r in res:
-                cid, bai, ori, vlr, qtd, ope = r[0].strip(), r[1].strip(), r[2], float(r[3]), int(r[4]), r[5]
-                if ori == 'ML': 
-                    stats['movel_qtd'] += qtd; stats['movel_vlr'] += vlr
-                    chart_ml.append({'label': f"{cid}-{bai}", 'valor': vlr})
-                elif ori == 'TL': 
-                    stats['eletro_qtd'] += qtd; stats['eletro_vlr'] += vlr
-                stats['total_qtd'] += qtd; stats['total_vlr'] += vlr
-                stats['operadores'][ope] = stats['operadores'].get(ope, 0) + qtd
-                if cid not in regioes: regioes[cid] = {}
-                if bai not in regioes[cid]: regioes[cid][bai] = {'ML': [0,0], 'total': 0.0}
-                if ori == 'ML': regioes[cid][bai]['ML'][0] += vlr; regioes[cid][bai]['ML'][1] += qtd
-                regioes[cid][bai]['total'] += vlr
-            
-            chart_ml = sorted(chart_ml, key=lambda x: x['valor'], reverse=True)[:10]
-
-            q_clie = f"SELECT COUNT(DISTINCT Cod_Cliente) FROM nfscb WHERE Status='F' AND Cod_Estabe=0 AND Cod_Vendedor={int(vendedor_id)} AND Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'"
-            res_clie = execute_query(q_clie)
-            if res_clie: stats['clientes_atendidos'] = int(res_clie[0][0])
-        except Exception as e:
-            logger.error(f"Erro no processamento do mapa: {e}")
+        query = f"""SELECT ISNULL(nf.Cidade, 'NAO INF.'), ISNULL(nf.Bairro, 'NAO INF.'), nf.Cod_OrigemNfs, 
+                    SUM(nf.Vlr_TotalNota), COUNT(nf.Num_Nota), ISNULL(ve.Nome_Guerra, 'NAO IDENT.') 
+                    FROM nfscb nf WITH (NOLOCK) LEFT JOIN VENDE ve ON ve.Codigo = nf.Cod_VendTlmkt
+                    WHERE nf.Cod_Estabe = 0 AND nf.Status = 'F' AND nf.Cod_Vendedor = {int(vendedor_id)} 
+                    AND nf.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
+                    GROUP BY nf.Cidade, nf.Bairro, nf.Cod_OrigemNfs, ve.Nome_Guerra"""
+        
+        res = execute_query(query)
+        for r in res:
+            cid, bai, ori, vlr, qtd, ope = r[0].strip(), r[1].strip(), r[2], float(r[3]), int(r[4]), r[5]
+            if ori == 'ML': stats['movel_qtd'] += qtd; stats['movel_vlr'] += vlr; chart_ml.append({'label': f"{cid}-{bai}", 'valor': vlr})
+            elif ori == 'TL': stats['eletro_qtd'] += qtd; stats['eletro_vlr'] += vlr
+            stats['total_qtd'] += qtd; stats['total_vlr'] += vlr
+            stats['operadores'][ope] = stats['operadores'].get(ope, 0) + qtd
+            if cid not in regioes: regioes[cid] = {}
+            if bai not in regioes[cid]: regioes[cid][bai] = {'ML': [0,0], 'total': 0.0}
+            if ori == 'ML': regioes[cid][bai]['ML'][0] += vlr; regioes[cid][bai]['ML'][1] += qtd
+            regioes[cid][bai]['total'] += vlr
+        
+        chart_ml = sorted(chart_ml, key=lambda x: x['valor'], reverse=True)[:10]
+        q_clie = f"SELECT COUNT(DISTINCT Cod_Cliente) FROM nfscb WHERE Status='F' AND Cod_Estabe=0 AND Cod_Vendedor={int(vendedor_id)} AND Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'"
+        res_clie = execute_query(q_clie)
+        if res_clie: stats['clientes_atendidos'] = int(res_clie[0][0])
 
     return render_template('mapa.html', regioes=regioes, vendedores=v_list, chart_ml=chart_ml, data_inicio=inicio_raw, data_fim=fim_raw, vendedor_selecionado=vendedor_id, stats=stats)
 
