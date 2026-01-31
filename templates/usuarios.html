@@ -1,41 +1,63 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-usuarios" style="padding: 30px;">
-    <h2 style="color: #333; margin-bottom: 20px;">Gestão de Acessos</h2>
+<div class="container-usuarios" style="padding: 30px; font-family: 'Segoe UI', sans-serif;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h2 style="color: #333; font-weight: 800;">Gestão de Acessos BI</h2>
+        <a href="/dashboard" style="padding: 10px 20px; background: #5c6bc0; color: white; text-decoration: none; border-radius: 5px; font-size: 13px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">← Voltar ao Dashboard</a>
+    </div>
     
-    <div class="card-cadastro" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div class="card-cadastro" style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <form method="POST" style="display: flex; gap: 15px; align-items: flex-end;">
-            <div style="flex: 1;">
-                <label>Nome</label>
-                <input type="text" name="nome" class="form-control" required style="width: 100%; padding: 8px;">
-            </div>
-            <div style="flex: 1;">
-                <label>Login</label>
-                <input type="text" name="login" class="form-control" required style="width: 100%; padding: 8px;">
-            </div>
-            <div style="flex: 1;">
-                <label>Senha</label>
-                <input type="password" name="senha" class="form-control" required style="width: 100%; padding: 8px;">
-            </div>
-            <button type="submit" class="btn-cadastrar" style="padding: 10px 25px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Salvar</button>
+            <div style="flex: 1;"><label style="font-size: 11px; font-weight: 800; color: #999;">NOME COMPLETO</label><input type="text" name="nome" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></div>
+            <div style="flex: 1;"><label style="font-size: 11px; font-weight: 800; color: #999;">LOGIN</label><input type="text" name="login" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></div>
+            <div style="flex: 1;"><label style="font-size: 11px; font-weight: 800; color: #999;">SENHA</label><input type="password" name="senha" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></div>
+            <button type="submit" style="padding: 11px 25px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 12px;">Salvar Acesso</button>
         </form>
     </div>
 
-    <table style="width: 100%; margin-top: 30px; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden;">
+    <table style="width: 100%; margin-top: 30px; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
         <thead>
-            <tr style="background: #007bff; color: white; text-align: left;">
-                <th style="padding: 15px;">Nome</th>
-                <th style="padding: 15px;">Login</th>
+            <tr style="background: #007bff; color: white; text-align: left; font-size: 13px;">
+                <th style="padding: 15px;">NOME</th>
+                <th style="padding: 15px;">LOGIN</th>
+                <th style="padding: 15px; text-align: center;">AÇÕES</th>
             </tr>
         </thead>
         <tbody>
             {% for u in usuarios %}
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 15px;">{{ u[1] }}</td>
-                <td style="padding: 15px;">{{ u[2] }}</td>
+                <td style="padding: 15px; font-weight: 600; color: #444;">{{ u[1] }}</td>
+                <td style="padding: 15px;"><code>{{ u[2] }}</code></td>
+                <td style="padding: 15px; text-align: center;">
+                    <button onclick="editar('{{ u[2] }}', '{{ u[1] }}')" style="background: #ffc107; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-right: 5px;">EDITAR</button>
+                    {% if u[2] != 'admin' %}
+                    <a href="/usuarios/excluir/{{ u[2] }}" onclick="return confirm('Excluir este acesso?')" style="background: #dc3545; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold;">EXCLUIR</a>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <div id="editZone" style="display: none; margin-top: 30px; background: #fff; padding: 25px; border-radius: 10px; border: 2px solid #ffc107; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h3 style="margin-bottom: 15px; color: #333;">Alterar Usuário: <span id="targetLogin" style="color: #007bff;"></span></h3>
+        <form action="/usuarios/editar" method="POST" style="display: flex; gap: 15px; align-items: flex-end;">
+            <input type="hidden" name="edit_login" id="editLogin">
+            <div style="flex:1;"><label style="font-size: 11px; font-weight: bold; color: #999;">NOVO NOME</label><input type="text" name="edit_nome" id="editNome" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></div>
+            <div style="flex:1;"><label style="font-size: 11px; font-weight: bold; color: #999;">NOVA SENHA (OPCIONAL)</label><input type="password" name="edit_senha" placeholder="Deixe em branco para manter" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></div>
+            <button type="submit" style="background:#007bff; color:white; border:none; padding:11px 25px; border-radius:5px; cursor: pointer; font-weight: bold;">ATUALIZAR</button>
+            <button type="button" onclick="document.getElementById('editZone').style.display='none'" style="background:#6c757d; color:white; border:none; padding:11px 25px; border-radius:5px; cursor: pointer;">CANCELAR</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    function editar(l, n) { 
+        document.getElementById('editZone').style.display='block'; 
+        document.getElementById('editLogin').value=l; 
+        document.getElementById('targetLogin').innerText=l; 
+        document.getElementById('editNome').value=n; 
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
 {% endblock %}

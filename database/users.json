@@ -1,0 +1,10 @@
+{
+    "admin": {
+        "nome": "Administrador",
+        "senha": "admin123456"
+    },
+    "artenio": {
+        "nome": "Artenio Reis",
+        "senha": "17171321"
+    }
+}
