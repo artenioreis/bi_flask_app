@@ -64,7 +64,8 @@ def get_objetivos_excel():
     if os.path.exists(EXCEL_PATH):
         try:
             df = pd.read_excel(EXCEL_PATH)
-            df['Codigo'] = df['Codigo'].astype(int)
+            df.columns = df.columns.str.strip()
+            df['Codigo'] = pd.to_numeric(df['Codigo'], errors='coerce').fillna(0).astype(int)
             return df.set_index('Codigo')['Vlr_ObjetivoClie'].to_dict()
         except: return {}
     return {}
@@ -157,7 +158,7 @@ def logout():
     session.clear(); return redirect(url_for('login'))
 
 # ============================================
-# DASHBOARD v44.7 (VENDAS DO MÊS ATUALIZADO)
+# DASHBOARD v45.0 (BLINDADO)
 # ============================================
 
 @app.route('/dashboard')
@@ -196,7 +197,7 @@ def dashboard():
         res_v_atend = execute_query(f"SELECT COUNT(DISTINCT Cod_Cliente) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
         v_stats['atendidos'] = int(res_v_atend[0][0] or 0) if res_v_atend else 0
 
-    clientes_finais, t_m_c, t_v_c, t_lim, t_deb, q_atr = [], 0, 0, 0, 0, 0
+    clientes_finais, t_m_c, t_v_c = [], 0, 0
     query_clie = f"""SELECT cl.Codigo, cl.Razao_Social, ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 
     (SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = cl.Codigo AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}) as Vnd
     FROM clien cl INNER JOIN enxes en ON cl.Codigo = en.Cod_Client AND en.Cod_Estabe = 0 WHERE cl.Bloqueado = 0"""
@@ -207,12 +208,12 @@ def dashboard():
     res_db = execute_query(query_clie)
     for r in res_db:
         m_c = obj_ex.get(r[0], 0); vnd = float(r[4] or 0)
-        t_m_c += m_c; t_v_c += vnd; t_lim += float(r[2]); t_deb += float(r[3])
+        t_m_c += m_c; t_v_c += vnd
         res_at = execute_query(f"SELECT MIN(Dat_Vencimento) FROM CTREC WHERE Cod_Cliente = {r[0]} AND Vlr_Saldo > 0 AND Status IN ('A', 'P')")
         atr_d = 0
         if res_at and res_at[0][0]:
             venc = res_at[0][0].date() if isinstance(res_at[0][0], datetime) else res_at[0][0]
-            if venc < hoje: atr_d = (hoje - venc).days; q_atr += 1
+            if venc < hoje: atr_d = (hoje - venc).days
         if valor or len(res_db) < 150:
             clientes_finais.append([r[0], r[1], 'Não', float(r[2]), float(r[3]), 0, atr_d, '', '', 0, vnd, m_c, (vnd/m_c*100 if m_c>0 else 0)])
 
@@ -220,18 +221,24 @@ def dashboard():
                          proj={'meta': m_cia, 'realizado': r_cia, 'valor_projecao': (r_cia/cal['trabalhados']*cal['uteis']), 'atingimento_proj': (r_cia/m_cia*100)},
                          sel={'meta': m_sel, 'realizado': r_sel, 'valor_projecao': p_sel, 'atingimento_proj': a_sel},
                          clie_proj={'meta': t_m_c, 'realizado': t_v_c, 'valor_projecao': (t_v_c/cal['trabalhados']*cal['uteis']), 'atingimento_proj': (t_v_c/t_m_c*100 if t_m_c>0 else 0)},
-                         geral_clie={'limite': t_lim, 'debito': t_deb, 'atraso': q_atr}, vendedor_stats=v_stats)
+                         vendedor_stats=v_stats)
 
 # ============================================
-# ANÁLISE CLIENTE (CONSISTÊNCIA DE DADOS)
+# ANÁLISE CLIENTE (LABORATÓRIOS AJUSTADO)
 # ============================================
 
 @app.route('/analise/<int:cliente_id>')
 @login_required
 def analise_cliente(cliente_id):
     mes, ano = datetime.now().month, datetime.now().year
+    hoje = date.today()
+    inicio_raw = request.args.get('inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
+    fim_raw = request.args.get('fim', hoje.strftime('%Y-%m-%d'))
+    d_ini, d_fim = inicio_raw.replace("-", ""), fim_raw.replace("-", "")
+
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0) FROM clien WHERE Codigo = {cliente_id}")
     if not res: return redirect(url_for('dashboard'))
+    
     titulos = execute_query(f"SELECT Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento, DATEDIFF(DAY, Dat_Vencimento, GETDATE()) FROM CTREC WHERE Cod_Cliente = {cliente_id} AND Vlr_Saldo > 0")
     d_atr_max = max([int(t[6]) for t in titulos if int(t[6]) > 0] or [0])
     
@@ -241,43 +248,28 @@ def analise_cliente(cliente_id):
     sql_hist = f"SELECT YEAR(Dat_Emissao), MONTH(Dat_Emissao), SUM(Vlr_TotalNota) FROM NFSCB WITH (NOLOCK) WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND Cod_Estabe = 0 AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) GROUP BY YEAR(Dat_Emissao), MONTH(Dat_Emissao) ORDER BY 1, 2"
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]
+    
+    # Query de Laboratórios Ajustada (Fantasia e Vlr_TotItem)
+    sql_lab = f"""SELECT TOP 15 
+        ISNULL(fb.Fantasia, 'OUTROS'), 
+        SUM(i.Vlr_TotItem) 
+        FROM NFSCB n WITH (NOLOCK)
+        INNER JOIN nfsit i WITH (NOLOCK) ON n.Num_Nota = i.Num_Nota AND n.Ser_Nota = i.Ser_Nota AND n.Cod_Estabe = i.Cod_Estabe
+        INNER JOIN PRODU p WITH (NOLOCK) ON i.Cod_Produto = p.Codigo
+        LEFT JOIN FABRI fb WITH (NOLOCK) ON p.Cod_Fabricante = fb.Codigo
+        WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
+        AND n.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
+        GROUP BY ISNULL(fb.Fantasia, 'OUTROS') ORDER BY 2 DESC"""
+    
+    res_lab = execute_query(sql_lab)
+    lab_list = [{'nome': str(r[0]).strip(), 'total': float(r[1])} for r in res_lab]
+
     v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
-    return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), vendas_atual=v_at, titulos=titulos, vendedores=v_list)
-
-# ============================================
-# MAPA REGIONAL (ISO DATE FIX)
-# ============================================
-
-@app.route('/mapa')
-@login_required
-def mapa_vendas():
-    inicio_raw = request.args.get('inicio', '2026-01-01'); fim_raw = request.args.get('fim', '2026-01-31')
-    vendedor_id = request.args.get('vendedor', '')
-    v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
-    regioes, chart_ml, stats = {}, [], {'movel_qtd': 0, 'movel_vlr': 0.0, 'eletro_qtd': 0, 'eletro_vlr': 0.0, 'total_qtd': 0, 'total_vlr': 0.0, 'clientes_atendidos': 0, 'operadores': {}}
-
-    if vendedor_id:
-        d_ini, d_fim = inicio_raw.replace("-", ""), fim_raw.replace("-", "")
-        query = f"""SELECT ISNULL(nf.Cidade, 'NAO INF.'), ISNULL(nf.Bairro, 'NAO INF.'), nf.Cod_OrigemNfs, SUM(nf.Vlr_TotalNota), COUNT(nf.Num_Nota), ISNULL(ve.Nome_Guerra, 'NAO IDENT.') 
-        FROM nfscb nf WITH (NOLOCK) LEFT JOIN VENDE ve ON ve.Codigo = nf.Cod_VendTlmkt
-        WHERE nf.Cod_Estabe = 0 AND nf.Status = 'F' AND nf.Cod_Vendedor = {int(vendedor_id)} AND nf.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
-        GROUP BY nf.Cidade, nf.Bairro, nf.Cod_OrigemNfs, ve.Nome_Guerra"""
-        res = execute_query(query)
-        for r in res:
-            cid, bai, ori, vlr, qtd, ope = r[0].strip(), r[1].strip(), r[2], float(r[3]), int(r[4]), r[5]
-            if ori == 'ML': stats['movel_qtd'] += qtd; stats['movel_vlr'] += vlr; chart_ml.append({'label': f"{cid}-{bai}", 'valor': vlr})
-            elif ori == 'TL': stats['eletro_qtd'] += qtd; stats['eletro_vlr'] += vlr
-            stats['total_qtd'] += qtd; stats['total_vlr'] += vlr
-            stats['operadores'][ope] = stats['operadores'].get(ope, 0) + qtd
-            if cid not in regioes: regioes[cid] = {}
-            if bai not in regioes[cid]: regioes[cid][bai] = {'ML': [0,0], 'total': 0.0}
-            if ori == 'ML': regioes[cid][bai]['ML'][0] += vlr; regioes[cid][bai]['ML'][1] += qtd
-            regioes[cid][bai]['total'] += vlr
-        chart_ml = sorted(chart_ml, key=lambda x: x['valor'], reverse=True)[:10]
-        res_clie = execute_query(f"SELECT COUNT(DISTINCT Cod_Cliente) FROM nfscb WHERE Status='F' AND Cod_Estabe=0 AND Cod_Vendedor={int(vendedor_id)} AND Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'")
-        if res_clie: stats['clientes_atendidos'] = int(res_clie[0][0])
-
-    return render_template('mapa.html', regioes=regioes, vendedores=v_list, chart_ml=chart_ml, data_inicio=inicio_raw, data_fim=fim_raw, vendedor_selecionado=vendedor_id, stats=stats)
+    
+    return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), 
+                         dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), 
+                         vendas_atual=v_at, titulos=titulos, vendedores=v_list, 
+                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

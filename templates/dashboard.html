@@ -32,9 +32,6 @@
         .top-purple { border-top: 4px solid #6f42c1; }
         .top-green { border-top: 4px solid #28a745; }
         .top-orange { border-top: 4px solid #fd7e14; }
-        .side-blue { border-left: 5px solid #007bff; }
-        .side-pink { border-left: 5px solid #e83e8c; }
-        .side-red { border-left: 5px solid #dc3545; }
         .gauge-box { height: 120px; position: relative; }
         .gauge-text { font-size: 24px; font-weight: 800; text-align: center; margin-top: -35px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -125,12 +122,6 @@
                 <div class="gauge-box"><canvas id="gCli"></canvas></div>
                 <div class="gauge-text" style="color:#2ecc71;">{{ "%.1f"|format(clie_proj.atingimento_proj) }}%</div>
             </div>
-        </div>
-
-        <div class="grid-3">
-            <div class="card side-blue"><div class="title-card" style="text-align:left;">TOTAL LIMITE</div><span class="stat-main" style="text-align:left; padding-left: 10px;">R$ {{"%.2f"|format(geral_clie.limite)}}</span></div>
-            <div class="card side-pink"><div class="title-card" style="text-align:left;">TOTAL DÉBITO</div><span class="stat-main" style="text-align:left; padding-left: 10px;">R$ {{"%.2f"|format(geral_clie.debito)}}</span></div>
-            <div class="card side-red"><div class="title-card" style="text-align:left;">CLIENTES EM ATRASO</div><span class="stat-main" style="text-align:left; padding-left: 10px;">{{geral_clie.atraso}}</span></div>
         </div>
 
         <div class="card" style="padding:0; overflow:hidden;">

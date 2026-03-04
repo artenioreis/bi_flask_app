@@ -7,19 +7,23 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
-        /* BARRA ROXA image_63ac97.png */
         .navbar { background: #6f42c1; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
         .navbar-brand { font-size: 18px; font-weight: 800; display: flex; align-items: center; }
         .v-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 10px; }
         .btn-top { background: rgba(255,255,255,0.1); color: white; padding: 6px 15px; border-radius: 20px; text-decoration: none; font-size: 12px; border: 1px solid rgba(255,255,255,0.3); }
-        
-        /* SELECT AMARELO image_63ac97.png */
         .sel-yellow { background: #ffc107; border: none; padding: 6px 15px; border-radius: 5px; font-weight: 800; cursor: pointer; color: #333; font-size: 12px; }
 
         .container { max-width: 1400px; margin: 20px auto; padding: 0 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .card-full { grid-column: 1 / -1; }
-        .title { color: #2c3e50; font-size: 15px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .title { color: #2c3e50; font-size: 15px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .filter-bar { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 0px; display: flex; gap: 15px; align-items: flex-end; border-top: 4px solid #6f42c1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-label { font-size: 10px; font-weight: 800; color: #aaa; text-transform: uppercase; }
+        .filter-input { padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; }
+        .btn-filter { background: #6f42c1; color: white; border: none; padding: 9px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+
         .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .kpi-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1; text-align: center; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -29,7 +33,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="navbar-brand">BI Varejão Farma <span class="v-tag">v44.4</span></div>
+        <div class="navbar-brand">BI Varejão Farma <span class="v-tag">v45.0</span></div>
         <div style="display: flex; gap: 15px; align-items: center;">
             <select class="sel-yellow" onchange="if(this.value) window.location.href='/dashboard?tipo=vendedor&valor='+this.value">
                 <option value="">Vendedores ▾</option>
@@ -55,6 +59,18 @@
             </div>
         </div>
 
+        <div class="card card-full filter-bar">
+            <div class="filter-group">
+                <span class="filter-label">Data Início</span>
+                <input type="date" id="f_ini" class="filter-input" value="{{ data_inicio }}">
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Data Fim</span>
+                <input type="date" id="f_fim" class="filter-input" value="{{ data_fim }}">
+            </div>
+            <button class="btn-filter" onclick="aplicarFiltro()">Filtrar Laboratórios</button>
+        </div>
+
         <div class="card">
             <div class="title">Resumo Financeiro</div>
             <div class="kpi-row">
@@ -72,13 +88,23 @@
         </div>
 
         <div class="card card-full">
+            <div class="title">Vendas por Laboratório</div>
+            <div style="height: 380px;"><canvas id="labChart"></canvas></div>
+        </div>
+
+        <div class="card card-full">
             <div class="title">Evolução Mensal (Comparativo Anual)</div>
             <div style="height: 320px;"><canvas id="compChart"></canvas></div>
         </div>
     </div>
 
     <script>
-        // GRÁFICO DE LINHAS image_63ac97.png
+        function aplicarFiltro(){
+            const i = document.getElementById('f_ini').value;
+            const f = document.getElementById('f_fim').value;
+            window.location.href = `/analise/{{ cliente[0] }}?inicio=${i}&fim=${f}`;
+        }
+
         const hist = {{ comparativo | tojson }};
         const d24 = Array(12).fill(0), d25 = Array(12).fill(0), d26 = Array(12).fill(0);
         hist.forEach(h => { if(h.ano===2024) d24[h.mes-1]=h.total; else if(h.ano===2025) d25[h.mes-1]=h.total; else if(h.ano===2026) d26[h.mes-1]=h.total; });
@@ -90,12 +116,33 @@
                 datasets: [
                     { label: '2024', data: d24, borderColor: '#f5c6cb', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 },
                     { label: '2025', data: d25, borderColor: '#ffeeba', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 },
-                    { label: '2026', data: d26, borderColor: '#c3e6cb', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 }
+                    { label: '2026', data: d26, borderColor: '#6f42c1', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
         
+        const labData = {{ laboratorios | tojson }};
+        new Chart(document.getElementById('labChart'), {
+            type: 'bar',
+            data: {
+                labels: labData.map(l => l.nome),
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: labData.map(l => l.total),
+                    backgroundColor: '#6f42c1',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+
         new Chart(document.getElementById('metaGauge'), { type: 'doughnut', data: { datasets: [{ data: [{{vendas_atual if vendas_atual<objetivo else objetivo}}, {{objetivo-vendas_atual if objetivo>vendas_atual else 0}}], backgroundColor: ['#28a745', '#eee'], circumference: 180, rotation: 270, cutout: '80%' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     </script>
 </body>
