@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-center">Bem-vindo ao BI de Vendas!</h2>
+<a href="{{ url_for('logout') }}" class="btn btn-danger mb-4">Sair</a>
+<h3>Análise de Compras de Clientes</h3>
+{{ compras_html | safe }}
+<h3 class="mt-5">Carteira de Cada Vendedor</h3>
+{{ carteira_html | safe }}
+{% endblock %}

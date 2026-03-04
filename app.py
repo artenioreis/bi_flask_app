@@ -96,6 +96,23 @@ def login():
         return render_template('login.html', erro="Acesso Negado!", config=get_db_cfg())
     return render_template('login.html', config=get_db_cfg())
 
+@app.route('/configurar_banco', methods=['POST'])
+def configurar_banco():
+    try:
+        config = {
+            "server": request.form.get('server'),
+            "database": request.form.get('database'),
+            "username": request.form.get('username'),
+            "password": request.form.get('password')
+        }
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4)
+        flash("Configurações do banco atualizadas com sucesso!", "success")
+    except Exception as e:
+        flash(f"Erro ao salvar configurações: {e}", "danger")
+    return redirect(url_for('login'))
+
 def get_db_cfg():
     if os.path.exists(CONFIG_PATH):
         try:
@@ -149,29 +166,36 @@ def dashboard():
     filtro = request.args.get('tipo', 'todos')
     valor = request.args.get('valor', '').strip()
     
-    # Datas dinâmicas para o faturamento
     hoje = date.today()
     mes, ano = hoje.month, hoje.year
     cal = {'uteis': 21, 'trabalhados': 13}
     obj_ex = get_objetivos_excel()
     v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
 
-    # 1. Realizado Geral Empresa (Mês Atual)
-    r_cia = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WITH (NOLOCK) WHERE Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")[0][0] or 0)
-    m_cia = float(execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Ano_Ref = {ano} AND Mes_Ref = {mes}")[0][0] or 1)
+    res_cia_total = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WITH (NOLOCK) WHERE Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+    r_cia = float(res_cia_total[0][0] or 0) if res_cia_total else 0.0
     
-    # 2. Realizado por Vendedor
+    res_cia_meta = execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Ano_Ref = {ano} AND Mes_Ref = {mes}")
+    m_cia = float(res_cia_meta[0][0] or 1) if res_cia_meta else 1.0
+    
     m_sel, r_sel, p_sel, a_sel = 0, 0, 0, 0
     v_stats = {'total_carteira': 0, 'atendidos': 0}
     if filtro == 'vendedor' and valor:
-        m_sel = float(execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Cod_Vendedor = {int(valor)} AND Ano_Ref = {ano} AND Mes_Ref = {mes}")[0][0] or 1)
-        r_sel = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")[0][0] or 0)
+        res_v_meta = execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Cod_Vendedor = {int(valor)} AND Ano_Ref = {ano} AND Mes_Ref = {mes}")
+        m_sel = float(res_v_meta[0][0] or 1) if res_v_meta else 1.0
+        
+        res_v_real = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+        r_sel = float(res_v_real[0][0] or 0) if res_v_real else 0.0
+        
         p_sel = (r_sel / cal['trabalhados'] * cal['uteis'])
         a_sel = (p_sel / m_sel * 100)
-        v_stats['total_carteira'] = int(execute_query(f"SELECT COUNT(DISTINCT Cod_Client) FROM enxes WHERE Cod_Vendedor = {int(valor)} AND Cod_Estabe = 0")[0][0] or 0)
-        v_stats['atendidos'] = int(execute_query(f"SELECT COUNT(DISTINCT Cod_Cliente) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")[0][0] or 0)
+        
+        res_v_cart = execute_query(f"SELECT COUNT(DISTINCT Cod_Client) FROM enxes WHERE Cod_Vendedor = {int(valor)} AND Cod_Estabe = 0")
+        v_stats['total_carteira'] = int(res_v_cart[0][0] or 0) if res_v_cart else 0
+        
+        res_v_atend = execute_query(f"SELECT COUNT(DISTINCT Cod_Cliente) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+        v_stats['atendidos'] = int(res_v_atend[0][0] or 0) if res_v_atend else 0
 
-    # 3. Listagem de Clientes e Faturamento Individual
     clientes_finais, t_m_c, t_v_c, t_lim, t_deb, q_atr = [], 0, 0, 0, 0, 0
     query_clie = f"""SELECT cl.Codigo, cl.Razao_Social, ISNULL(cl.Limite_Credito, 0), ISNULL(cl.Total_Debito, 0), 
     (SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = cl.Codigo AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}) as Vnd
@@ -210,7 +234,10 @@ def analise_cliente(cliente_id):
     if not res: return redirect(url_for('dashboard'))
     titulos = execute_query(f"SELECT Num_Documento, Par_Documento, Vlr_Documento, Vlr_Saldo, Dat_Emissao, Dat_Vencimento, DATEDIFF(DAY, Dat_Vencimento, GETDATE()) FROM CTREC WHERE Cod_Cliente = {cliente_id} AND Vlr_Saldo > 0")
     d_atr_max = max([int(t[6]) for t in titulos if int(t[6]) > 0] or [0])
-    v_at = float(execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")[0][0] or 0)
+    
+    res_v_at = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+    v_at = float(res_v_at[0][0] or 0) if res_v_at else 0.0
+    
     sql_hist = f"SELECT YEAR(Dat_Emissao), MONTH(Dat_Emissao), SUM(Vlr_TotalNota) FROM NFSCB WITH (NOLOCK) WHERE Cod_Cliente = {cliente_id} AND Status = 'F' AND Cod_Estabe = 0 AND YEAR(Dat_Emissao) IN (2024, 2025, 2026) GROUP BY YEAR(Dat_Emissao), MONTH(Dat_Emissao) ORDER BY 1, 2"
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]

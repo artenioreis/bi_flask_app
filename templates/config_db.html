@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-center">Configuração Inicial de Conexão ao Banco de Dados</h2>
+<form method="POST" class="mt-4">
+    <div class="mb-3">
+        <label for="server" class="form-label">Servidor SQL Server</label>
+        <input type="text" class="form-control" id="server" name="server" required>
+    </div>
+    <div class="mb-3">
+        <label for="database" class="form-label">Nome do Banco de Dados</label>
+        <input type="text" class="form-control" id="database" name="database" required>
+    </div>
+    <div class="mb-3">
+        <label for="user" class="form-label">Usuário do Banco</label>
+        <input type="text" class="form-control" id="user" name="user" required>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Senha do Banco</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary">Salvar e Conectar</button> <!-- Botão alinhado -->
+    </div>
+</form>
+{% endblock %}
