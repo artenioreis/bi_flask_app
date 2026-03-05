@@ -224,7 +224,7 @@ def dashboard():
                          vendedor_stats=v_stats)
 
 # ============================================
-# ANÁLISE CLIENTE (MODIFICADO)
+# ANÁLISE CLIENTE (COM HISTÓRICO LABORATÓRIO)
 # ============================================
 
 @app.route('/analise/<int:cliente_id>')
@@ -234,8 +234,6 @@ def analise_cliente(cliente_id):
     hoje = date.today()
     inicio_raw = request.args.get('inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
     fim_raw = request.args.get('fim', hoje.strftime('%Y-%m-%d'))
-    lab_filtro = request.args.get('laboratorio_filtro', '').strip()
-    
     d_ini, d_fim = inicio_raw.replace("-", ""), fim_raw.replace("-", "")
 
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0) FROM clien WHERE Codigo = {cliente_id}")
@@ -251,6 +249,7 @@ def analise_cliente(cliente_id):
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]
     
+    # Ranking de Laboratórios (Fantasia e Vlr_TotItem)
     sql_lab = f"""SELECT 
         ISNULL(fb.Fantasia, 'OUTROS'), 
         SUM(i.Vlr_TotItem) 
@@ -261,32 +260,69 @@ def analise_cliente(cliente_id):
         WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
         AND n.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
         GROUP BY ISNULL(fb.Fantasia, 'OUTROS') ORDER BY 2 DESC"""
-    
-    res_lab = execute_query(sql_lab)    
+    res_lab = execute_query(sql_lab)
     lab_list = [{'nome': str(r[0]).strip(), 'total': float(r[1])} for r in res_lab]
 
-    comparativo_lab = []
-    if lab_filtro:
-        sql_comp_lab = f"""SELECT YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao), SUM(i.Vlr_TotItem)
-            FROM NFSCB n WITH (NOLOCK)
-            INNER JOIN nfsit i WITH (NOLOCK) ON n.Num_Nota = i.Num_Nota AND n.Ser_Nota = i.Ser_Nota AND n.Cod_Estabe = i.Cod_Estabe
-            INNER JOIN PRODU p WITH (NOLOCK) ON i.Cod_Produto = p.Codigo
-            LEFT JOIN FABRI fb WITH (NOLOCK) ON p.Cod_Fabricante = fb.Codigo
-            WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
-            AND ISNULL(fb.Fantasia, 'OUTROS') = '{lab_filtro}'
-            AND YEAR(n.Dat_Emissao) IN (2024, 2025, 2026)
-            GROUP BY YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao)
-            ORDER BY 1, 2"""
-        res_comp_lab = execute_query(sql_comp_lab)
-        comparativo_lab = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_comp_lab]
+    # Histórico de Evolução Mensal por Laboratório
+    lab_top1 = lab_list[0]['nome'] if lab_list else "OUTROS"
+    sql_hist_lab = f"""SELECT YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao), SUM(i.Vlr_TotItem) 
+        FROM NFSCB n WITH (NOLOCK)
+        INNER JOIN nfsit i WITH (NOLOCK) ON n.Num_Nota = i.Num_Nota AND n.Ser_Nota = i.Ser_Nota AND n.Cod_Estabe = i.Cod_Estabe
+        INNER JOIN PRODU p WITH (NOLOCK) ON i.Cod_Produto = p.Codigo
+        LEFT JOIN FABRI fb WITH (NOLOCK) ON p.Cod_Fabricante = fb.Codigo
+        WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
+        AND YEAR(n.Dat_Emissao) IN (2024, 2025, 2026)
+        AND ISNULL(fb.Fantasia, 'OUTROS') = '{lab_top1}'
+        GROUP BY YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao) ORDER BY 1, 2"""
+    res_hist_lab = execute_query(sql_hist_lab)
+    comparativo_lab = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist_lab]
 
     v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
     
     return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), 
                          dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), 
                          vendas_atual=v_at, titulos=titulos, vendedores=v_list, 
-                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw,
-                         comparativo_lab=comparativo_lab, lab_selecionado=lab_filtro)
+                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw, 
+                         lab_nome_hist=lab_top1, comparativo_lab=comparativo_lab)
+
+# ============================================
+# MAPA REGIONAL (CORRIGIDO 404)
+# ============================================
+
+@app.route('/mapa')
+@login_required
+def mapa_vendas():
+    hoje = date.today()
+    inicio_raw = request.args.get('inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
+    fim_raw = request.args.get('fim', hoje.strftime('%Y-%m-%d'))
+    vendedor_id = request.args.get('vendedor', '')
+    
+    v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
+    regioes, chart_ml, stats = {}, [], {'movel_qtd': 0, 'movel_vlr': 0.0, 'eletro_qtd': 0, 'eletro_vlr': 0.0, 'total_qtd': 0, 'total_vlr': 0.0, 'clientes_atendidos': 0, 'operadores': {}}
+
+    if vendedor_id:
+        d_ini, d_fim = inicio_raw.replace("-", ""), fim_raw.replace("-", "")
+        query = f"""SELECT ISNULL(nf.Cidade, 'NAO INF.'), ISNULL(nf.Bairro, 'NAO INF.'), nf.Cod_OrigemNfs, SUM(nf.Vlr_TotalNota), COUNT(nf.Num_Nota), ISNULL(ve.Nome_Guerra, 'NAO IDENT.') 
+        FROM nfscb nf WITH (NOLOCK) LEFT JOIN VENDE ve ON ve.Codigo = nf.Cod_VendTlmkt
+        WHERE nf.Cod_Estabe = 0 AND nf.Status = 'F' AND nf.Cod_Vendedor = {int(vendedor_id)} AND nf.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
+        GROUP BY nf.Cidade, nf.Bairro, nf.Cod_OrigemNfs, ve.Nome_Guerra"""
+        res = execute_query(query)
+        for r in res:
+            cid, bai, ori, vlr, qtd, ope = r[0].strip(), r[1].strip(), r[2], float(r[3]), int(r[4]), r[5]
+            if ori == 'ML': stats['movel_qtd'] += qtd; stats['movel_vlr'] += vlr; chart_ml.append({'label': f"{cid}-{bai}", 'valor': vlr})
+            elif ori == 'TL': stats['eletro_qtd'] += qtd; stats['eletro_vlr'] += vlr
+            stats['total_qtd'] += qtd; stats['total_vlr'] += vlr
+            stats['operadores'][ope] = stats['operadores'].get(ope, 0) + qtd
+            if cid not in regioes: regioes[cid] = {}
+            if bai not in regioes[cid]: regioes[cid][bai] = {'ML': [0,0], 'total': 0.0}
+            if ori == 'ML': regioes[cid][bai]['ML'][0] += vlr; regioes[cid][bai]['ML'][1] += qtd
+            regioes[cid][bai]['total'] += vlr
+        
+        chart_ml = sorted(chart_ml, key=lambda x: x['valor'], reverse=True)[:10]
+        res_clie = execute_query(f"SELECT COUNT(DISTINCT Cod_Cliente) FROM nfscb WHERE Status='F' AND Cod_Estabe=0 AND Cod_Vendedor={int(vendedor_id)} AND Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'")
+        if res_clie: stats['clientes_atendidos'] = int(res_clie[0][0])
+
+    return render_template('mapa.html', regioes=regioes, vendedores=v_list, chart_ml=chart_ml, data_inicio=inicio_raw, data_fim=fim_raw, vendedor_selecionado=vendedor_id, stats=stats)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
