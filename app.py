@@ -224,7 +224,7 @@ def dashboard():
                          vendedor_stats=v_stats)
 
 # ============================================
-# ANÁLISE CLIENTE (LABORATÓRIOS AJUSTADO)
+# ANÁLISE CLIENTE (MODIFICADO)
 # ============================================
 
 @app.route('/analise/<int:cliente_id>')
@@ -234,6 +234,8 @@ def analise_cliente(cliente_id):
     hoje = date.today()
     inicio_raw = request.args.get('inicio', hoje.replace(day=1).strftime('%Y-%m-%d'))
     fim_raw = request.args.get('fim', hoje.strftime('%Y-%m-%d'))
+    lab_filtro = request.args.get('laboratorio_filtro', '').strip()
+    
     d_ini, d_fim = inicio_raw.replace("-", ""), fim_raw.replace("-", "")
 
     res = execute_query(f"SELECT Codigo, Razao_Social, ISNULL(Limite_Credito, 0), ISNULL(Total_Debito, 0) FROM clien WHERE Codigo = {cliente_id}")
@@ -249,8 +251,7 @@ def analise_cliente(cliente_id):
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]
     
-    # Query de Laboratórios Ajustada (Fantasia e Vlr_TotItem)
-    sql_lab = f"""SELECT TOP 15 
+    sql_lab = f"""SELECT 
         ISNULL(fb.Fantasia, 'OUTROS'), 
         SUM(i.Vlr_TotItem) 
         FROM NFSCB n WITH (NOLOCK)
@@ -261,15 +262,31 @@ def analise_cliente(cliente_id):
         AND n.Dat_Emissao BETWEEN '{d_ini}' AND '{d_fim} 23:59:59'
         GROUP BY ISNULL(fb.Fantasia, 'OUTROS') ORDER BY 2 DESC"""
     
-    res_lab = execute_query(sql_lab)
+    res_lab = execute_query(sql_lab)    
     lab_list = [{'nome': str(r[0]).strip(), 'total': float(r[1])} for r in res_lab]
+
+    comparativo_lab = []
+    if lab_filtro:
+        sql_comp_lab = f"""SELECT YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao), SUM(i.Vlr_TotItem)
+            FROM NFSCB n WITH (NOLOCK)
+            INNER JOIN nfsit i WITH (NOLOCK) ON n.Num_Nota = i.Num_Nota AND n.Ser_Nota = i.Ser_Nota AND n.Cod_Estabe = i.Cod_Estabe
+            INNER JOIN PRODU p WITH (NOLOCK) ON i.Cod_Produto = p.Codigo
+            LEFT JOIN FABRI fb WITH (NOLOCK) ON p.Cod_Fabricante = fb.Codigo
+            WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
+            AND ISNULL(fb.Fantasia, 'OUTROS') = '{lab_filtro}'
+            AND YEAR(n.Dat_Emissao) IN (2024, 2025, 2026)
+            GROUP BY YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao)
+            ORDER BY 1, 2"""
+        res_comp_lab = execute_query(sql_comp_lab)
+        comparativo_lab = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_comp_lab]
 
     v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
     
     return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), 
                          dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), 
                          vendas_atual=v_at, titulos=titulos, vendedores=v_list, 
-                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw)
+                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw,
+                         comparativo_lab=comparativo_lab, lab_selecionado=lab_filtro)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
