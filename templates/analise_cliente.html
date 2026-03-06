@@ -2,148 +2,176 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>BI Varejão Farma - Analise</title>
+    <title>Análise de Cliente - BI Varejão</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
-        .navbar { background: #6f42c1; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .navbar-brand { font-size: 18px; font-weight: 800; display: flex; align-items: center; }
-        .v-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 10px; }
-        .btn-top { background: rgba(255,255,255,0.1); color: white; padding: 6px 15px; border-radius: 20px; text-decoration: none; font-size: 12px; border: 1px solid rgba(255,255,255,0.3); }
-        .sel-yellow { background: #ffc107; border: none; padding: 6px 15px; border-radius: 5px; font-weight: 800; cursor: pointer; color: #333; font-size: 12px; }
-
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .card-full { grid-column: 1 / -1; }
-        .title { color: #2c3e50; font-size: 15px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .filter-bar { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 0px; display: flex; gap: 15px; align-items: flex-end; border-top: 4px solid #6f42c1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-label { font-size: 10px; font-weight: 800; color: #aaa; text-transform: uppercase; }
-        .filter-input { padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; }
-        .btn-filter { background: #6f42c1; color: white; border: none; padding: 9px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; }
-
-        .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .kpi-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1; text-align: center; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 12px; background: #f8f9fa; border-bottom: 2px solid #eee; }
-        td { padding: 12px; border-bottom: 1px solid #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .header-analise { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { text-decoration: none; color: #5c6bc0; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #5c6bc0; font-weight: 800; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-red { background: #ffebee; color: #c62828; }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">BI Varejão Farma <span class="v-tag">v45.0</span></div>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <select class="sel-yellow" onchange="if(this.value) window.location.href='/dashboard?tipo=vendedor&valor='+this.value">
-                <option value="">Vendedores ▾</option>
-                {% for v in vendedores %}
-                <option value="{{ v[0] }}">{{ v[1] }}</option>
-                {% endfor %}
-            </select>
-            <a href="/dashboard" class="btn-top">← Voltar ao Dashboard</a>
-            <a href="/logout" style="color: white; font-size: 12px; text-decoration: none; opacity: 0.8;">Sair</a>
-        </div>
-    </nav>
-
     <div class="container">
-        <div class="card card-full" style="display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #6f42c1;">
-            <div><h2 style="color: #2c3e50; font-size: 26px;">{{ cliente[1] }}</h2><small style="color: #999;">Cód: {{ cliente[0] }}</small></div>
+        <div class="header-analise">
+            <div>
+                <a href="/dashboard" class="btn-back">← Voltar ao Dashboard</a>
+                <h1 style="margin-top:10px;">{{ cliente[1] }} ({{ cliente[0] }})</h1>
+            </div>
             <div style="text-align: right;">
-                <div style="font-size: 12px; color: #999; font-weight: bold;">SITUAÇÃO</div>
-                <div style="color: {% if dias_atraso > 0 %}#dc3545{% else %}#28a745{% endif %}; font-weight: 900; font-size: 22px;">
-                    {{ "Regular" if dias_atraso == 0 else "Em Atraso" }}
+                <form action="/analise/{{ cliente[0] }}" method="get">
+                    <input type="date" name="inicio" value="{{ data_inicio }}">
+                    <input type="date" name="fim" value="{{ data_fim }}">
+                    <button type="submit" style="padding: 5px 15px; background: #5c6bc0; color: white; border: none; border-radius: 4px; cursor: pointer;">Filtrar Laboratórios</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Informações Financeiras</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    <div>
+                        <small style="color:#888;">LIMITE DE CRÉDITO</small>
+                        <p style="font-size: 18px; font-weight: 800;">R$ {{ "%.2f"|format(limite_credito) }}</p>
+                    </div>
+                    <div>
+                        <small style="color:#888;">SALDO DISPONÍVEL</small>
+                        <p style="font-size: 18px; font-weight: 800; color: {% if saldo > 0 %}#2ecc71{% else %}#e74c3c{% endif %};">R$ {{ "%.2f"|format(saldo) }}</p>
+                    </div>
+                    <div>
+                        <small style="color:#888;">MAIOR ATRASO</small>
+                        <p style="font-size: 18px; font-weight: 800; color: #e74c3c;">{{ dias_atraso }} dias</p>
+                    </div>
+                    <div>
+                        <small style="color:#888;">OBJETIVO MENSAL (EXCEL)</small>
+                        <p style="font-size: 18px; font-weight: 800;">R$ {{ "%.2f"|format(objetivo) }}</p>
+                    </div>
+                    <div style="grid-column: span 2; border-top: 1px solid #eee; padding-top: 10px; margin-top: 5px;">
+                        <small style="color:#888;">VENDA REAL (MÊS)</small>
+                        <p style="font-size: 22px; font-weight: 800; color: #007bff;">R$ {{ "%.2f"|format(vendas_atual) }}</p>
+                    </div>
                 </div>
-                <div style="font-size: 12px; color: #999; font-weight: bold; margin-top: 5px;">SALDO DEVEDOR</div>
-                <div style="font-weight: 900; font-size: 22px;">R$ {{ "%.2f"|format(saldo) }}</div>
+            </div>
+
+            <div class="card">
+                <h3>Evolução de Compras (Total)</h3>
+                <canvas id="chartEvolucao" height="150"></canvas>
             </div>
         </div>
 
-        <div class="card card-full filter-bar">
-            <div class="filter-group">
-                <span class="filter-label">Data Início</span>
-                <input type="date" id="f_ini" class="filter-input" value="{{ data_inicio }}">
+        <div class="grid-2">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>Evolução Mensal Comparativa</h3>
+                    <select id="labSelect" onchange="updateLabChart(this.value)" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                        {% for lab in laboratorios %}
+                        <option value="{{ lab.nome }}" {% if lab.nome == lab_nome_hist %}selected{% endif %}>{{ lab.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <canvas id="chartLab" height="150"></canvas>
             </div>
-            <div class="filter-group">
-                <span class="filter-label">Data Fim</span>
-                <input type="date" id="f_fim" class="filter-input" value="{{ data_fim }}">
+
+            <div class="card">
+                <h3>Ranking de Laboratórios (Período Selecionado)</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Laboratório</th>
+                                <th>Valor Comprado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lab in laboratorios %}
+                            <tr>
+                                <td>{{ lab.nome }}</td>
+                                <td style="font-weight: bold;">R$ {{ "%.2f"|format(lab.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button class="btn-filter" onclick="aplicarFiltro()">Filtrar Laboratórios</button>
-        </div>
-
-        <div class="card">
-            <div class="title">Resumo Financeiro</div>
-            <div class="kpi-row">
-                <div class="kpi-box"><small>Limite</small><div><strong>R$ {{ "%.2f"|format(limite_credito) }}</strong></div></div>
-                <div class="kpi-box" style="border-color: #28a745;"><small>Venda Mês</small><div><strong>R$ {{ "%.2f"|format(vendas_atual) }}</strong></div></div>
-                <div class="kpi-box" style="border-color: #ffc107;"><small>Meta (Excel)</small><div><strong>R$ {{ "%.2f"|format(objetivo) }}</strong></div></div>
-                <div class="kpi-box" style="border-color: #dc3545;"><small>Atraso</small><div><strong>{{ dias_atraso }} dias</strong></div></div>
-            </div>
-        </div>
-
-        <div class="card" style="text-align: center;">
-            <div class="title">Atingimento de Meta</div>
-            <div style="height: 150px;"><canvas id="metaGauge"></canvas></div>
-            <div style="font-size: 26px; font-weight: 900; margin-top: -20px; color: #2c3e50;">{{ "%.1f"|format((vendas_atual/objetivo*100) if objetivo > 0 else 0) }}%</div>
-        </div>
-
-        <div class="card card-full">
-            <div class="title">Vendas por Laboratório</div>
-            <div style="height: 380px;"><canvas id="labChart"></canvas></div>
-        </div>
-
-        <div class="card card-full">
-            <div class="title">Evolução Mensal (Comparativo Anual)</div>
-            <div style="height: 320px;"><canvas id="compChart"></canvas></div>
         </div>
     </div>
 
     <script>
-        function aplicarFiltro(){
-            const i = document.getElementById('f_ini').value;
-            const f = document.getElementById('f_fim').value;
-            window.location.href = `/analise/{{ cliente[0] }}?inicio=${i}&fim=${f}`;
+        const ctxTotal = document.getElementById('chartEvolucao').getContext('2d');
+        const labelsMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        
+        const dataHist = {{ comparativo | tojson }};
+        const datasets = [];
+        const anos = [...new Set(dataHist.map(d => d.ano))];
+        const cores = ['#5c6bc0', '#2ecc71', '#f1c40f'];
+
+        anos.forEach((ano, idx) => {
+            datasets.push({
+                label: ano,
+                data: labelsMeses.map((_, i) => {
+                    const found = dataHist.find(d => d.ano === ano && d.mes === i + 1);
+                    return found ? found.total : 0;
+                }),
+                borderColor: cores[idx],
+                tension: 0.3,
+                fill: false
+            });
+        });
+
+        new Chart(ctxTotal, {
+            type: 'line',
+            data: { labels: labelsMeses, datasets: datasets },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        let chartLabInstance;
+        function updateLabChart(labNome) {
+            fetch(`/api/historico_lab/{{ cliente[0] }}/${labNome}`)
+                .then(response => response.json())
+                .then(data => {
+                    const labDatasets = [];
+                    const labAnos = [...new Set(data.map(d => d.ano))];
+                    
+                    labAnos.forEach((ano, idx) => {
+                        labDatasets.push({
+                            label: ano,
+                            data: labelsMeses.map((_, i) => {
+                                const found = data.find(d => d.ano === ano && d.mes === i + 1);
+                                return found ? found.total : 0;
+                            }),
+                            borderColor: cores[idx],
+                            backgroundColor: cores[idx],
+                            borderWidth: 2
+                        });
+                    });
+
+                    if (chartLabInstance) {
+                        chartLabInstance.destroy();
+                    }
+
+                    chartLabInstance = new Chart(document.getElementById('chartLab').getContext('2d'), {
+                        type: 'bar',
+                        data: { labels: labelsMeses, datasets: labDatasets },
+                        options: { 
+                            responsive: true, 
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { position: 'bottom' } } 
+                        }
+                    });
+                });
         }
 
-        const hist = {{ comparativo | tojson }};
-        const d24 = Array(12).fill(0), d25 = Array(12).fill(0), d26 = Array(12).fill(0);
-        hist.forEach(h => { if(h.ano===2024) d24[h.mes-1]=h.total; else if(h.ano===2025) d25[h.mes-1]=h.total; else if(h.ano===2026) d26[h.mes-1]=h.total; });
-
-        new Chart(document.getElementById('compChart'), {
-            type: 'line', 
-            data: {
-                labels: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
-                datasets: [
-                    { label: '2024', data: d24, borderColor: '#f5c6cb', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 },
-                    { label: '2025', data: d25, borderColor: '#ffeeba', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 },
-                    { label: '2026', data: d26, borderColor: '#6f42c1', backgroundColor: 'transparent', pointRadius: 4, tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-        
-        const labData = {{ laboratorios | tojson }};
-        new Chart(document.getElementById('labChart'), {
-            type: 'bar',
-            data: {
-                labels: labData.map(l => l.nome),
-                datasets: [{
-                    label: 'Vendas (R$)',
-                    data: labData.map(l => l.total),
-                    backgroundColor: '#6f42c1',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
-            }
-        });
-
-        new Chart(document.getElementById('metaGauge'), { type: 'doughnut', data: { datasets: [{ data: [{{vendas_atual if vendas_atual<objetivo else objetivo}}, {{objetivo-vendas_atual if objetivo>vendas_atual else 0}}], backgroundColor: ['#28a745', '#eee'], circumference: 180, rotation: 270, cutout: '80%' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        updateLabChart(document.getElementById('labSelect').value);
     </script>
 </body>
 </html>

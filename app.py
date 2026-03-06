@@ -224,7 +224,7 @@ def dashboard():
                          vendedor_stats=v_stats)
 
 # ============================================
-# ANÁLISE CLIENTE (COM HISTÓRICO LABORATÓRIO)
+# ANÁLISE CLIENTE
 # ============================================
 
 @app.route('/analise/<int:cliente_id>')
@@ -249,7 +249,6 @@ def analise_cliente(cliente_id):
     res_hist = execute_query(sql_hist)
     comparativo_data = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist]
     
-    # Ranking de Laboratórios (Fantasia e Vlr_TotItem)
     sql_lab = f"""SELECT 
         ISNULL(fb.Fantasia, 'OUTROS'), 
         SUM(i.Vlr_TotItem) 
@@ -263,30 +262,33 @@ def analise_cliente(cliente_id):
     res_lab = execute_query(sql_lab)
     lab_list = [{'nome': str(r[0]).strip(), 'total': float(r[1])} for r in res_lab]
 
-    # Histórico de Evolução Mensal por Laboratório
     lab_top1 = lab_list[0]['nome'] if lab_list else "OUTROS"
-    sql_hist_lab = f"""SELECT YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao), SUM(i.Vlr_TotItem) 
+    
+    v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
+    
+    return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), 
+                         dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), 
+                         vendas_atual=v_at, vendedores=v_list, 
+                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw, 
+                         lab_nome_hist=lab_top1)
+
+@app.route('/api/historico_lab/<int:cliente_id>/<lab_nome>')
+@login_required
+def api_historico_lab(cliente_id, lab_nome):
+    sql = f"""SELECT YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao), SUM(i.Vlr_TotItem) 
         FROM NFSCB n WITH (NOLOCK)
         INNER JOIN nfsit i WITH (NOLOCK) ON n.Num_Nota = i.Num_Nota AND n.Ser_Nota = i.Ser_Nota AND n.Cod_Estabe = i.Cod_Estabe
         INNER JOIN PRODU p WITH (NOLOCK) ON i.Cod_Produto = p.Codigo
         LEFT JOIN FABRI fb WITH (NOLOCK) ON p.Cod_Fabricante = fb.Codigo
         WHERE n.Cod_Cliente = {cliente_id} AND n.Status = 'F' AND n.Cod_Estabe = 0
         AND YEAR(n.Dat_Emissao) IN (2024, 2025, 2026)
-        AND ISNULL(fb.Fantasia, 'OUTROS') = '{lab_top1}'
+        AND ISNULL(fb.Fantasia, 'OUTROS') = '{lab_nome}'
         GROUP BY YEAR(n.Dat_Emissao), MONTH(n.Dat_Emissao) ORDER BY 1, 2"""
-    res_hist_lab = execute_query(sql_hist_lab)
-    comparativo_lab = [{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res_hist_lab]
-
-    v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
-    
-    return render_template('analise_cliente.html', cliente=res[0], limite_credito=float(res[0][2]), saldo=float(res[0][2]-res[0][3]), 
-                         dias_atraso=d_atr_max, comparativo=comparativo_data, objetivo=get_objetivos_excel().get(cliente_id, 0), 
-                         vendas_atual=v_at, titulos=titulos, vendedores=v_list, 
-                         laboratorios=lab_list, data_inicio=inicio_raw, data_fim=fim_raw, 
-                         lab_nome_hist=lab_top1, comparativo_lab=comparativo_lab)
+    res = execute_query(sql)
+    return jsonify([{'ano': int(h[0]), 'mes': int(h[1]), 'total': float(h[2])} for h in res])
 
 # ============================================
-# MAPA REGIONAL (CORRIGIDO 404)
+# MAPA REGIONAL
 # ============================================
 
 @app.route('/mapa')
