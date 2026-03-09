@@ -158,7 +158,7 @@ def logout():
     session.clear(); return redirect(url_for('login'))
 
 # ============================================
-# DASHBOARD v45.0 (BLINDADO)
+# DASHBOARD v45.1 (AJUSTADO COM SQL LÍQUIDO)
 # ============================================
 
 @app.route('/dashboard')
@@ -168,12 +168,56 @@ def dashboard():
     valor = request.args.get('valor', '').strip()
     
     hoje = date.today()
+    hoje_str = hoje.strftime('%Y%m%d')
+    primeiro_dia = hoje.replace(day=1).strftime('%Y%m%d')
     mes, ano = hoje.month, hoje.year
     cal = {'uteis': 21, 'trabalhados': 13}
     obj_ex = get_objetivos_excel()
     v_list = execute_query("SELECT Codigo, Nome_guerra FROM vende WHERE Bloqueado = 0 ORDER BY Nome_guerra")
 
-    res_cia_total = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WITH (NOLOCK) WHERE Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+    # SQL Ajustado conforme solicitação para Vendedor/Cia (Vlr_Liq)
+    def get_sql_vendas_ajustado(cod_vendedor=None):
+        filtro_vendedor = f"AND ve.Codigo = {int(cod_vendedor)}" if cod_vendedor else ""
+        filtro_vendedor_nfe = f"AND vd.Codigo = {int(cod_vendedor)}" if cod_vendedor else ""
+        
+        return f"""
+        SELECT SUM(y.VlrLiq) FROM (
+            SELECT VlrLiq = Sum(it.Vlr_LiqItem-it.Vlr_SubsTrib-it.Vlr_SbtRes-it.Vlr_RecSbt-it.Vlr_SubsTribEmb-it.Vlr_DespRateada-IsNull(it.Vlr_DspExt, 0))
+            FROM NFSCB cb
+            INNER JOIN NFSIT it ON (cb.Cod_Estabe = it.Cod_Estabe AND cb.Ser_Nota = it.Ser_Nota AND cb.Num_Nota = it.Num_Nota)
+            INNER JOIN CLIEN cl ON(cb.Cod_Cliente=cl.Codigo)
+            INNER JOIN ENXES en ON((en.Cod_Estabe=cb.Cod_Estabe)AND(cl.Cgc_Cpf=en.Num_CgcCpf)AND(cl.Codigo=en.Cod_Client))
+            INNER JOIN VENDE ve ON cb.Cod_Vendedor = ve.Codigo
+            INNER JOIN SUPER su ON ve.Cod_Supervisor = su.Codigo
+            INNER JOIN (
+                SELECT n.Cod_Cliente, v.Codigo
+                FROM NFSCB n
+                INNER JOIN CLIEN c ON(n.Cod_Cliente=c.Codigo)
+                INNER JOIN ENXES e ON((e.Cod_Estabe=n.Cod_Estabe)AND(c.Cgc_Cpf=e.Num_CgcCpf)AND(c.Codigo=e.Cod_Client))
+                LEFT OUTER JOIN VENDE v ON (n.Cod_Vendedor = v.Codigo)
+                WHERE n.Dat_Emissao >= '{primeiro_dia}' AND n.Dat_Emissao <= '{hoje_str}'
+                AND n.Cod_Estabe = 0 AND (n.Status = 'F' AND n.Tip_Saida = 'V')
+                GROUP BY n.Cod_Cliente, v.Codigo
+            ) x ON(cb.Cod_Cliente=x.Cod_Cliente AND ve.Codigo=x.Codigo)
+            WHERE cb.Cod_Estabe = 0 AND (cb.Status = 'F' AND cb.Tip_Saida = 'V')
+            AND cb.Dat_Emissao >= '{primeiro_dia}' AND cb.Dat_Emissao <= '{hoje_str}'
+            AND su.Cod_Gerencia = 2 {filtro_vendedor}
+            
+            UNION ALL 
+            
+            SELECT VlrLiq = (Sum(it.Vlr_LiqIte-it.Vlr_SubsTrib-it.Vlr_DifTri-it.Vlr_DespRateada-it.Vlr_SbtRes) * (-1))
+            FROM NFECB cb
+            INNER JOIN NFEIT it ON((cb.Cod_Estabe=it.Cod_Estabe)AND(cb.Protocolo=it.Protocolo))
+            INNER JOIN VENDE vd ON cb.Cod_Vendedor=vd.Codigo
+            INNER JOIN SUPER su ON vd.Cod_Supervisor=su.Codigo
+            WHERE cb.Cod_Estabe = 0 AND (cb.Status = 'F' AND cb.Tip_NF = 'D')
+            AND cb.Dat_Movimento >= '{primeiro_dia}' AND cb.Dat_Movimento <= '{hoje_str}'
+            AND su.Cod_Gerencia = 2 {filtro_vendedor_nfe}
+        ) Y
+        """
+
+    # Realizado Cia (Líquido)
+    res_cia_total = execute_query(get_sql_vendas_ajustado())
     r_cia = float(res_cia_total[0][0] or 0) if res_cia_total else 0.0
     
     res_cia_meta = execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Ano_Ref = {ano} AND Mes_Ref = {mes}")
@@ -181,15 +225,17 @@ def dashboard():
     
     m_sel, r_sel, p_sel, a_sel = 0, 0, 0, 0
     v_stats = {'total_carteira': 0, 'atendidos': 0}
+    
     if filtro == 'vendedor' and valor:
         res_v_meta = execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Cod_Vendedor = {int(valor)} AND Ano_Ref = {ano} AND Mes_Ref = {mes}")
         m_sel = float(res_v_meta[0][0] or 1) if res_v_meta else 1.0
         
-        res_v_real = execute_query(f"SELECT ISNULL(SUM(Vlr_TotalNota), 0) FROM NFSCB WHERE Cod_Vendedor = {int(valor)} AND Status = 'F' AND Cod_Estabe = 0 AND MONTH(Dat_Emissao) = {mes} AND YEAR(Dat_Emissao) = {ano}")
+        # Realizado Vendedor (Líquido)
+        res_v_real = execute_query(get_sql_vendas_ajustado(valor))
         r_sel = float(res_v_real[0][0] or 0) if res_v_real else 0.0
         
         p_sel = (r_sel / cal['trabalhados'] * cal['uteis'])
-        a_sel = (p_sel / m_sel * 100)
+        a_sel = (r_sel / m_sel * 100) if m_sel > 0 else 0
         
         res_v_cart = execute_query(f"SELECT COUNT(DISTINCT Cod_Client) FROM enxes WHERE Cod_Vendedor = {int(valor)} AND Cod_Estabe = 0")
         v_stats['total_carteira'] = int(res_v_cart[0][0] or 0) if res_v_cart else 0
