@@ -220,7 +220,7 @@ def dashboard():
     res_cia_total = execute_query(get_sql_vendas_ajustado())
     r_cia = float(res_cia_total[0][0] or 0) if res_cia_total else 0.0
     
-    res_cia_meta = execute_query(f"SELECT ISNULL(SUM(Vlr_Cota), 0) FROM VEOBJ WHERE Ano_Ref = {ano} AND Mes_Ref = {mes}")
+    res_cia_meta = execute_query(f"SELECT ISNULL(SUM(o.Vlr_Cota), 0) FROM VEOBJ o INNER JOIN vende v ON o.Cod_Vendedor = v.Codigo WHERE o.Ano_Ref = {ano} AND o.Mes_Ref = {mes} AND v.Bloqueado = 0")
     m_cia = float(res_cia_meta[0][0] or 1) if res_cia_meta else 1.0
     
     m_sel, r_sel, p_sel, a_sel = 0, 0, 0, 0

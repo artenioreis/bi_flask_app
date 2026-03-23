@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>BI Varejão - Dashboard v45.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS BLINDADO Power BI Theme */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eaedf2; color: #252423; line-height: 1.5; }
+        header { background: #222972; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .logo { font-weight: 600; color: #ffffff; font-size: 16px; display: flex; align-items: center; }
+        .v-tag { background: #E3222B; color: #fff; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 10px; font-weight: 600; }
+        .container { max-width: 1600px; margin: 16px auto; padding: 0 16px; }
+        .toolbar { background: #fff; padding: 16px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 16px; align-items: flex-end; margin-bottom: 16px; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-label { font-size: 12px; font-weight: 600; color: #605e5c; }
+        select, input { padding: 8px 12px; border: 1px solid #8a8886; border-radius: 2px; font-size: 14px; outline: none; background: #fff; min-width: 180px; transition: border-color 0.2s; }
+        select:focus, input:focus { border-color: #222972; border-width: 2px; padding: 7px 11px; }
+        .btn { padding: 8px 16px; border-radius: 2px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .btn-blue { background: #222972; }
+        .btn-blue:hover { background: #1a1f5c; }
+        .btn-green { background: #107c41; }
+        .btn-green:hover { background: #0b5a2f; }
+        .btn-purple { background: #E3222B; }
+        .btn-purple:hover { background: #c21d24; }
+        .card { background: white; padding: 16px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; display: flex; flex-direction: column; position: relative; border: 1px solid transparent; }
+        .card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+        .title-card { color: #323130; font-size: 14px; font-weight: 600; text-align: left; margin-bottom: 12px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;}
+        .performance-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 16px; }
+        .stat-main { font-size: 32px; font-weight: 400; color: #252423; text-align: center; display: block; font-family: 'Segoe UI', sans-serif; }
+        .metrics-container { display: flex; justify-content: space-around; align-items: center; padding: 10px 0; }
+        .metric-item { text-align: left; display: flex; flex-direction: column; gap: 4px; }
+        .metric-label { font-size: 12px; color: #605e5c; font-weight: 600; margin-bottom: 0; }
+        .metric-value { font-size: 18px; font-weight: 600; color: #252423; }
+        .top-purple, .top-green, .top-orange { border-top: none; }
+        .gauge-box { height: 140px; position: relative; display: flex; justify-content: center; }
+        .gauge-text { font-size: 28px; font-weight: 400; text-align: center; margin-top: -40px; color: #252423 !important; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { padding: 10px 16px; background: #fff; color: #323130; text-align: left; font-weight: 600; border-bottom: 2px solid #edebe9; }
+        td { padding: 10px 16px; border-bottom: 1px solid #edebe9; color: #323130; }
+        tbody tr:nth-child(even) { background-color: #faf9f8; }
+        tbody tr:hover { background-color: #f3f2f1; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">BI VAREJÃO FARMA <span class="v-tag">V45.0</span></div>
+        <div style="font-size: 13px;">{{ session.user }} | <a href="/logout" style="color:#dc3545; font-weight: bold; text-decoration: none;">Sair</a></div>
+    </header>
+
+    <div class="container">
+        <div class="toolbar">
+            <div class="filter-group">
+                <span class="filter-label">TIPO</span>
+                <select id="tipo" onchange="toggle()">
+                    <option value="todos" {% if filtro_ativo == 'todos' %}selected{% endif %}>Geral</option>
+                    <option value="vendedor" {% if filtro_ativo == 'vendedor' %}selected{% endif %}>Vendedor</option>
+                    <option value="cliente" {% if filtro_ativo == 'cliente' %}selected{% endif %}>Cliente</option>
+                </select>
+            </div>
+            <div class="filter-group" id="vInput" style="display:{% if filtro_ativo == 'vendedor' %}flex{% else %}none{% endif %};">
+                <span class="filter-label">VENDEDOR</span>
+                <select id="vSel">{% for v in vendedores %}<option value="{{ v[0] }}" {% if valor_filtro|string == v[0]|string %}selected{% endif %}>{{ v[1] }}</option>{% endfor %}</select>
+            </div>
+            <div id="cInput" class="filter-group" style="display:{% if filtro_ativo == 'cliente' %}flex{% else %}none{% endif %};">
+                <span class="filter-label">CLIENTE</span>
+                <input type="text" id="cSearch" value="{{ valor_filtro }}" placeholder="Cód ou Nome...">
+            </div>
+            <button class="btn btn-blue" onclick="apply()">Filtrar</button>
+            <a href="/mapa" class="btn btn-green">📍 Regional</a>
+            <a href="/usuarios" class="btn btn-purple">👥 Usuários</a>
+        </div>
+
+        {% if filtro_ativo == 'vendedor' %}
+        <div class="grid-3">
+            <div class="card top-purple"><div class="title-card">TOTAL CARTEIRA</div><span class="stat-main">{{ vendedor_stats.total_carteira }}</span></div>
+            <div class="card top-green"><div class="title-card">CLIENTES ATENDIDOS</div><span class="stat-main">{{ vendedor_stats.atendidos }}</span></div>
+            <div class="card top-orange"><div class="title-card">POSITIVAÇÃO</div><span class="stat-main">{{ "%.1f"|format((vendedor_stats.atendidos/vendedor_stats.total_carteira)*100) if vendedor_stats.total_carteira > 0 else 0 }}%</span></div>
+        </div>
+
+        <div class="performance-layout">
+            <div class="card" style="border-top: 4px solid #6f42c1;">
+                <div class="title-card">PERFORMANCE VENDEDOR</div>
+                <div class="metrics-container">
+                    <div class="metric-item"><div class="metric-label">Meta</div><div class="metric-value">R$ {{"%.2f"|format(sel.meta)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Realizado</div><div class="metric-value" style="color:#007bff;">R$ {{"%.2f"|format(sel.realizado)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Proj.</div><div class="metric-value" style="color:#6f42c1;">R$ {{"%.2f"|format(sel.valor_projecao)}}</div></div>
+                </div>
+            </div>
+            <div class="card" style="border-top: 4px solid #6f42c1; text-align: center;">
+                <div class="title-card">VELOCIDADE VENDEDOR</div>
+                <div class="gauge-box"><canvas id="gSel"></canvas></div>
+                <div class="gauge-text" style="color:#6f42c1;">{{ "%.1f"|format(sel.atingimento_proj) }}%</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="performance-layout">
+            <div class="card">
+                <div class="title-card">PERFORMANCE EMPRESA</div>
+                <div class="metrics-container">
+                    <div class="metric-item"><div class="metric-label">Meta</div><div class="metric-value">R$ {{"%.2f"|format(proj.meta)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Realizado</div><div class="metric-value" style="color:#007bff;">R$ {{"%.2f"|format(proj.realizado)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Proj.</div><div class="metric-value" style="color:#5c6bc0;">R$ {{"%.2f"|format(proj.valor_projecao)}}</div></div>
+                </div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="title-card">VELOCIDADE EMPRESA</div>
+                <div class="gauge-box"><canvas id="gEmp"></canvas></div>
+                <div class="gauge-text" style="color:#5c6bc0;">{{ "%.1f"|format(proj.atingimento_proj) }}%</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="performance-layout">
+            <div class="card">
+                <div class="title-card">METAS CLIENTES (EXCEL)</div>
+                <div class="metrics-container">
+                    <div class="metric-item"><div class="metric-label">Meta Base</div><div class="metric-value">R$ {{"%.2f"|format(clie_proj.meta)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Venda Real</div><div class="metric-value" style="color:#007bff;">R$ {{"%.2f"|format(clie_proj.realizado)}}</div></div>
+                    <div class="metric-item"><div class="metric-label">Proj.</div><div class="metric-value" style="color:#2ecc71;">R$ {{"%.2f"|format(clie_proj.valor_projecao)}}</div></div>
+                </div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="title-card">VELOCIDADE CARTEIRA</div>
+                <div class="gauge-box"><canvas id="gCli"></canvas></div>
+                <div class="gauge-text" style="color:#2ecc71;">{{ "%.1f"|format(clie_proj.atingimento_proj) }}%</div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead><tr><th>Cód</th><th>Cliente</th><th>Venda Real</th><th>Atraso</th><th style="text-align:center;">Ação</th></tr></thead>
+                <tbody>{% for c in clientes %}<tr><td>{{c[0]}}</td><td style="font-weight:700;">{{c[1]}}</td><td style="font-weight:700;">R$ {{"%.2f"|format(c[10])}}</td><td>{% if c[6]>0 %}<span style="color:#dc3545; font-weight:800;">⚠️ {{c[6]}}d</span>{% else %}<span style="color:#2ecc71; font-weight:800;">✓ OK</span>{% endif %}</td><td style="text-align:center;"><a href="/analise/{{c[0]}}" style="color:#5c6bc0; font-weight:800; text-decoration:none; background: #f0f2ff; padding: 6px 12px; border-radius: 4px;">VER</a></td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggle(){ const t = document.getElementById('tipo').value; document.getElementById('vInput').style.display = t === 'vendedor' ? 'flex' : 'none'; document.getElementById('cInput').style.display = t === 'cliente' ? 'flex' : 'none'; }
+        function apply(){ const t = document.getElementById('tipo').value; let v = t === 'vendedor' ? document.getElementById('vSel').value : document.getElementById('cSearch').value; window.location.href=`/dashboard?tipo=${t}&valor=${v}`; }
+        function drawG(id, val, color){ 
+            if(!document.getElementById(id)) return;
+            new Chart(document.getElementById(id), { type: 'doughnut', data: { datasets: [{ data: [Math.min(val, 100), Math.max(0, 100-val)], backgroundColor: [color, '#f0f0f0'], circumference: 180, rotation: 270, cutout: '80%' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); 
+        }
+        drawG('gEmp', {{ proj.atingimento_proj }}, '#5c6bc0');
+        drawG('gCli', {{ clie_proj.atingimento_proj }}, '#2ecc71');
+        {% if filtro_ativo == 'vendedor' %} drawG('gSel', {{ sel.atingimento_proj }}, '#6f42c1'); {% endif %}
+    </script>
+</body>
+</html>
